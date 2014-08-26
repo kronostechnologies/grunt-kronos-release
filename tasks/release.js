@@ -12,13 +12,16 @@
 
 'use strict';
 
-var semver = require('semver');
-var exec = require('child_process').exec;
+//var semver = require('semver');
+//var exec = require('child_process').exec;
 
 module.exports = function(grunt) {
 
   var DESC = 'release';
   grunt.registerTask('release', DESC, function(releaseCmd, versionType) {
+
+    var options = this.options({
+    });
 
     if (releaseCmd == 'start') {
       grunt.log.writeln('Starting release');
@@ -31,7 +34,7 @@ module.exports = function(grunt) {
   });
   
   var DESC = 'Prempare a hotfix';
-  grunt.registerTask('release', DESC, function(releaseCmd, versionType) {
+  grunt.registerTask('hotfix', DESC, function(releaseCmd) {
 
   });
 
