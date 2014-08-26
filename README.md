@@ -31,12 +31,44 @@ grunt.initConfig({
 
 ### Options
 
-#### options.xxx
-Type: `Array`
-Default value: `['package.json']`
+#### options.dev-branch
+Type: `String`
+Default value: `master`
 
-XXX
+Dev branch name
+
+#### options.release-branch
+Type: `String`
+Default value: `release/main`
+
+Release branch name
+
+#### options.stable-branch
+Type: `String`
+Default value: `stable/main`
+
+Stable branch name
 
 
 ### Usage Examples
 
+#### Stage project for release into FNCT environment
+
+```
+grunt release:start:minor
+grunt release:start:major
+grunt release:start:patch
+```
+ 
+#### Release project stable version
+
+```
+grunt release:finish
+```
+
+#### Release hotfix version
+
+```
+grunt hotfix:start --branch=hotifx/branch-name
+grunt hotfix:finish --branch=hotifx/branch-name
+```
