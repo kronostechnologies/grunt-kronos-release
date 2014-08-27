@@ -14,7 +14,7 @@
 
 //var semver = require('semver');
 var exec = require('child_process').exec;
-
+var runTask = require('grunt-run-task');
 
 module.exports = function(grunt) {
 
@@ -49,6 +49,8 @@ module.exports = function(grunt) {
         queue.push(behavior);
       }
     };
+
+    runTask.loadNpmTasks('grunt-bump');
       
     var gitPullBranches = function(options){ 
       exec('git pull --ff-only ' + options.pushTo + ' ' + options.devBranch + ' ' + options.releaseBranch + ' ' + options.stableBranch, function(err, stdout, stderr){
@@ -109,8 +111,15 @@ module.exports = function(grunt) {
       });
 
       run(function(){
-        grunt.task.run('bump:' + bumpType);
-        next();
+        //grunt.task.run('bump:' + bumpType);
+        //
+        
+        runTask('bump:' + bumpType, grunt.config.get('bump'), function (err, task) {
+          if (err) {
+            grunt.fatal(err);
+          }
+          next();
+        });
       });
       run(function(){
         grunt.log.writeln('AAAAAAAAAAAAAAAAAAAA');
