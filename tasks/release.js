@@ -12,9 +12,7 @@
 
 'use strict';
 
-//var semver = require('semver');
-var exec = require('child_process').exec;
-var runTask = require('grunt-run-task');
+var semver = require('semver');
 
 module.exports = function(grunt) {
 
@@ -22,68 +20,106 @@ module.exports = function(grunt) {
     devBranch: 'master',
     releaseBranch: 'release/main',
     stableBranch: 'stable/main',
-    pushTo: 'origin'
-  }
+    hotfixBranchPrefix: 'hotfix/',
+    remote: 'origin',
+    versionFile: 'package.json'
+  };
+
+  var configureGitTasks = function(options){
+    grunt.config.merge({
+      gitpull: {
+        dev: {
+          options: {
+            remote : options.remote,
+            branch : options.devBranch
+          }
+        },
+        release: {
+          options: {
+            remote : options.remote,
+            branch : options.releaseBranch
+          }
+        },
+        stable: {
+          options: {
+            remote : options.remote,
+            branch : options.stableBranch
+          }
+        }
+      },
+      gitcheckout: {
+        dev: {
+          options: {
+            branch : options.devBranch
+          }
+        },
+        release: {
+          options: {
+            branch : options.releaseBranch
+          }
+        },
+        stable: {
+          options: {
+            branch : options.stableBranch
+          }
+        }
+      },
+      gitmerge: {
+        dev: {
+          options: {
+            branch : options.devBranch,
+            noff: true
+          }
+        },
+        release: {
+          options: {
+            branch : options.releaseBranch,
+            noff: true
+          }
+        },
+        stable: {
+          options: {
+            branch : options.stableBranch,
+            noff: true
+          }
+        }
+      },
+      gitpush: {
+        dev: {
+          options: {
+            remote: options.remote,
+            branch : options.devBranch,
+            tags: true
+          }
+        },
+        release: {
+          options: {
+            remote: options.remote,
+            branch : options.releaseBranch,
+            tags: true
+          }
+        },
+        stable: {
+          options: {
+            remote: options.remote,
+            branch : options.stableBranch,
+            tags: true
+          }
+        }
+
+      }
+    });
+
+  };
+
+  var VERSION_REGEXP = /([\'|\"]?version[\'|\"]?[ ]*:[ ]*[\'|\"]?)([\d||A-a|.|-]*)([\'|\"]?)/i;
+
 
   var DESC = 'release';
   grunt.registerTask('release', DESC, function(releaseCmd, versionType) {
-
+    
     var options = this.options(DEFAULT_OPTIONS);
-
-    var done = this.async();
-    var queue = [];
- 
-    var next = function() {
-      if (!queue.length) {
-        return done();
-      }
-      queue.shift()();
-    };
-
-    var run = function(behavior){
-        queue.push(behavior);
-    };
-
-    var runIf = function(condition, behavior) {
-      if (condition) {
-        queue.push(behavior);
-      }
-    };
-
-    runTask.loadNpmTasks('grunt-bump');
-      
-    var gitPullBranches = function(options){ 
-      exec('git pull --ff-only ' + options.pushTo + ' ' + options.devBranch + ' ' + options.releaseBranch + ' ' + options.stableBranch, function(err, stdout, stderr){
-        grunt.log.writeln('Updating local branches from upstream.');
-        if (err) {
-          grunt.fatal(err);
-        }
-        next();
-      });
-    };
-    
-    var gitCheckout = function(branch){ 
-      exec('git checkout ' + branch, function(err, stdout, stderr){
-        grunt.log.writeln('checkout: ' + branch);
-        if (err) {
-          grunt.fatal(err);
-        }
-        grunt.log.writeln(stdout);
-        next();
-      });
-    };
-    
-    var gitMerge = function(branch){ 
-      exec('git merge --no-ff ' + branch, function(err, stdout, stderr){
-        grunt.log.writeln('merge: ' + branch);
-        if (err) {
-          grunt.fatal(err);
-        }
-        grunt.log.writeln(stdout);
-        next();
-      });
-    };
-
+    configureGitTasks(options);
 
     if (releaseCmd == 'start') {
       grunt.log.writeln('Starting release');
@@ -97,52 +133,186 @@ module.exports = function(grunt) {
       }
 
       var bumpType = 'pre' + versionType;
-     
-      //run(function() {
-      //  gitPullBranches(options);
-      //});
-
-      run(function(){
-        gitCheckout(options.releaseBranch);
-      });
-
-      run(function(){
-        gitMerge(options.devBranch);
-      });
-
-      run(function(){
-        //grunt.task.run('bump:' + bumpType);
-        //
-        
-        runTask('bump:' + bumpType, grunt.config.get('bump'), function (err, task) {
-          if (err) {
-            grunt.fatal(err);
-          }
-          next();
-        });
-      });
-      run(function(){
-        grunt.log.writeln('AAAAAAAAAAAAAAAAAAAA');
-        next();
-      });
-      next();
+    
+      grunt.task.run('gitpull:dev');
+      grunt.task.run('gitpull:release');
+      grunt.task.run('gitcheckout:release');
+      grunt.task.run('gitmerge:dev');
+      grunt.task.run('bump:' + bumpType);   
     }
     else if(releaseCmd == 'continue'){
-      grunt.log.writeln('Finishing release');
+      grunt.log.writeln('Continue release');
+
+      grunt.task.run('gitcheckout:release');
+      grunt.task.run('bump:prerelease');
 
     }
     else if(releaseCmd == 'finish'){
       grunt.log.writeln('Finishing release');
 
+      grunt.task.run('gitpull:release');
+      grunt.task.run('gitpull:stable');
+      grunt.task.run('gitcheckout:release');
+
+      // Remove the prerelease
+      grunt.task.run('bump-only:patch');
+      grunt.task.run('changelog');
+      grunt.task.run('bump-commit');
+      grunt.task.run('gitcheckout:stable');
+      grunt.task.run('gitmerge:release');
+
+      var version = null;
+      grunt.file.read(options.versionFile).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, suffix) {
+        // Version should be increment here also because bump task did not run yet.
+        version = semver.inc(parsedVersion, 'patch');
+      });
+
+      if (!version) {
+        grunt.fatal('Can not find a version in ' + options.versionFile);
+      }
+
+      grunt.log.writeln(version);
+      grunt.config.merge({
+        gittag: {
+          nextRelease: {
+            options: {
+              tag: 'v' + version,
+              message: 'Version ' +  version
+            }
+          }
+        }
+      });
+      grunt.task.run('gittag:nextRelease');
+
+      grunt.task.run('gitpush:stable');
+
+      grunt.task.run('gitcheckout:dev');
+      grunt.task.run('gitmerge:release');
+      grunt.task.run('gitpush:dev');
     }
     else {
       grunt.fatal('Invalid release command "' + releaseCmd + '". Should be start|continue|finish.');
     }
   });
+
+  
   var DESC = 'Prempare a hotfix';
-  grunt.registerTask('hotfix', DESC, function(releaseCmd) {
+  grunt.registerTask('hotfix', DESC, function(releaseCmd, hotfixName) {
+    
+    var options = this.options(DEFAULT_OPTIONS);
+    configureGitTasks(options);
+
+
+    if (releaseCmd == 'start') {
+
+      
+      if (typeof hotfixName == 'undefined'){
+        grunt.fatal('hotfix name is required. (ex: grunt hotfix:start:fix-name)');
+      }
+
+      var hotfixBranch = options.hotfixBranchPrefix + hotfixName;
+      grunt.log.writeln('Starting hotfix branch : ' + hotfixBranch);
+
+      grunt.task.run('gitpull:stable');
+      grunt.task.run('gitcheckout:stable');
+
+      grunt.config.merge({
+        gitcheckout: {
+          hotfix: {
+            options: {
+              branch: hotfixBranch,
+              create: true
+            }
+          }
+        }
+      });
+
+      grunt.task.run('gitcheckout:hotfix');
+
+    }
+    else if(releaseCmd == 'finish'){
+      
+      if (typeof hotfixName == 'undefined'){
+        grunt.fatal('hotfix name is required. (ex: grunt hotfix:finish:fix-name)');
+      }
+
+      var hotfixBranch = options.hotfixBranchPrefix + hotfixName;
+      grunt.log.writeln('Release hotfix branch : ' + hotfixBranch);
+      
+      
+      var version = null;
+      grunt.file.read(options.versionFile).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, suffix) {
+        // Version should be increment here also because bump task did not run yet.
+        version = semver.inc(parsedVersion, 'patch');
+      });
+
+      if (!version) {
+        grunt.fatal('Can not find a version in ' + options.versionFile);
+      }
+      
+      grunt.config.merge({
+        gitpull: {
+          hotfix: {
+            options: {
+              remote: options.remote,
+              branch: hotfixBranch
+            }
+          }
+        },
+        gitcheckout: {
+          hotfix: {
+            options: {
+              branch: hotfixBranch,
+            }
+          }
+        },
+        gitmerge: {
+          hotfix: {
+            options: {
+              branch: hotfixBranch,
+              noff: true
+            }
+          }
+        },
+        gittag: {
+          hotfix: {
+            options: {
+              tag: 'v' + version,
+              message: 'Version ' +  version
+            }
+          }
+        },
+        bump: {
+          options: {
+            push: false
+          }
+        }
+      });
+
+      //grunt.task.run('gitpull:hotfix');
+      grunt.task.run('gitpull:stable');
+      grunt.task.run('gitcheckout:hotfix');
+      grunt.task.run('bump-only:patch');
+      grunt.task.run('changelog');
+      grunt.task.run('bump-commit');
+      grunt.task.run('gitcheckout:stable');
+      grunt.task.run('gitmerge:hotfix');
+      grunt.task.run('gittag:hotfix');
+      grunt.task.run('gitpush:stable');
+
+      //TODO: Delete hotfix branch. grunt-git does not support gitbranch task
+    
+      grunt.log.writeln('Don\'t forget to merge back ' + options.stableBranch + ' into ' + options.devBranch + '( or in ' + options.releasBranch + ' if there is a release pending)');
+
+    }
+    else {
+      grunt.fatal('Invalid hotfix command "' + releaseCmd + '". Should be start|finish.');
+    }
+
 
   });
+
+  
 
 
 };
