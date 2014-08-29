@@ -95,7 +95,7 @@ JSON file to get the package current version.
 
 #### Prepare new release to be packaged
 
-To prepare a new release, code from development branch (master) is merged into release/main branch.  By default, version is incremented to a minor pre-release (0.X.0-1).  Major pre-release (X.0.0-1) can also be achieved.
+To prepare a new release, code from development branch (master) is merged into release/main branch.  By default, version is incremented to a minor pre-release `0.X.0-1`.  Major pre-release `X.0.0-1` can also be achieved.
 
 Code from `release/main` will be build by jenkins and installed in FNCT environment.
 
@@ -173,3 +173,20 @@ git checkout -f origin/release/main -- package.json bower.json # Keep release/ma
 grunt:release:contiue # Increment pre-release
 ```
 
+#### Create an alternate release task
+
+```js
+  grunt.registerTask('release-ia', 'Release for ia', function(releaseCmd, versionType){
+    grunt.config.merge({
+      release: {
+        options: {
+          releaseBranch: 'release/ia',
+          stableBranch: 'stable/ia'
+        }
+      }
+    });
+
+    grunt.task.run('release:' + releaseCmd + ':' + versionType);
+  });
+
+```
