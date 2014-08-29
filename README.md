@@ -176,17 +176,17 @@ grunt:release:contiue # Increment pre-release
 #### Create an alternate release task
 
 ```js
-  grunt.registerTask('release-ia', 'Release for ia', function(releaseCmd, versionType){
-    grunt.config.merge({
-      release: {
-        options: {
-          releaseBranch: 'release/ia',
-          stableBranch: 'stable/ia'
-        }
+grunt.registerTask('release-ia', 'Release for ia', function(releaseCmd, versionType){
+  grunt.config.merge({
+    release: {
+      options: {
+        releaseBranch: 'release/ia',
+        stableBranch: 'stable/ia'
       }
-    });
-
-    grunt.task.run('release:' + releaseCmd + ':' + versionType);
+    }
   });
+
+ grunt.task.run('release:' + releaseCmd + ':' + versionType);
+});
 
 ```
