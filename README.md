@@ -35,7 +35,7 @@ grunt.initConfig({
 })
 ```
 
-grunt-bump must be configured not to tag.
+[grunt-bump](https://www.npmjs.org/package/grunt-bump) must be configured not to tag.
 
 ```js
 bump: {
@@ -49,7 +49,7 @@ bump: {
 }
 ```
 
-grunt-git and grunt-changelog should be installed in your project.
+[grunt-git](https://www.npmjs.org/package/grunt-git) and [grunt-changelog](https://www.npmjs.org/package/grunt-changelog) should be installed in your project.
 
 ### Options
 
