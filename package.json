@@ -21,6 +21,7 @@
   "devDependencies": {
     "grunt": "~0.4.5",
     "grunt-git": "~0.2.14",
+    "grunt-release": "^0.7.0",
     "load-grunt-tasks": "^0.4.0",
     "matchdep": "^0.3.0",
     "semver": "^3.0.1"
