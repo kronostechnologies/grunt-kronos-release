@@ -3,13 +3,8 @@
 
 module.exports = function(grunt) {
   grunt.initConfig({
-    'bump': {
+    release: {
       options: {
-        files: ['package.json'],
-        commitFiles: ['package.json'],
-        push: true,
-        pushTo: 'origin',
-        createTag: true
       }
     }
   });
