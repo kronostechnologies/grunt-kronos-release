@@ -57,19 +57,38 @@ bump: {
 Type: `String`
 Default value: `master`
 
-Dev branch name
+Development branch where feature complete code is shared between developper.
 
 #### options.releaseBranch
 Type: `String`
 Default value: `release/main`
 
-Release branch name
+Release branch name. The stable branch is the branch for next release preparation and test build.
 
 #### options.stableBranch
 Type: `String`
 Default value: `stable/main`
 
-Stable branch name
+Stable branch name. The stable branch is the branch for production build.
+
+#### options.hotfixBranchPrefix
+Type: `String`
+Default value: `hotfix/`
+
+Prefix used by grunt `hotfix:start` and `hotfix:finish` to generate hotfix branch name from hotfix name.
+
+#### options.remote
+Type: `String`
+Default value: `origin`
+
+Git remote name for the repository.
+
+
+#### options.versionFile
+Type: `String`
+Default value: `package.json`
+
+JSON file to get the package current version.
 
 
 ### Usage Examples
