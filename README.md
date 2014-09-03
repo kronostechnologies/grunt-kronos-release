@@ -112,7 +112,7 @@ grunt release:start:major
 
 During the stabilization period for the next release, fixes should be done in the `release/main` branch. Commits can be cherry-picked from master or new commit can be done directly on release/main.
 
-During the stabilization process, merging `master` should be avoided. If it is absolutely necessary, you should keep the `release/main` version in package.json and bower.json when resolving merge conflict. 
+During the stabilization process, merging `master` should be avoided. If it is absolutely necessary, you should merge `release/main` into `master` before merging `master` into `release/main`.  Finally,  do a `grunt release:continue` to complete the release update.
 
 Keep in mind that the code should be feature complete before starting a new release.  Stabilization should be done in the release branch. *Don’t do dev in FNCT.*
 
