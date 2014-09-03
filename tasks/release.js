@@ -107,6 +107,12 @@ module.exports = function(grunt) {
           }
         }
 
+      },
+      bump: {
+        options: {
+          push: false,
+          createTag: false
+        }
       }
     });
 
@@ -139,12 +145,14 @@ module.exports = function(grunt) {
       grunt.task.run('gitcheckout:release');
       grunt.task.run('gitmerge:dev');
       grunt.task.run('bump:' + bumpType);   
+      grunt.task.run('gitpush:release');
     }
     else if(releaseCmd == 'continue'){
       grunt.log.writeln('Continue release');
 
       grunt.task.run('gitcheckout:release');
       grunt.task.run('bump:prerelease');
+      grunt.task.run('gitpush:release');
 
     }
     else if(releaseCmd == 'finish'){
@@ -158,6 +166,7 @@ module.exports = function(grunt) {
       grunt.task.run('bump-only:patch');
       grunt.task.run('changelog');
       grunt.task.run('bump-commit');
+      grunt.task.run('gitpush:release');
       grunt.task.run('gitcheckout:stable');
       grunt.task.run('gitmerge:release');
 

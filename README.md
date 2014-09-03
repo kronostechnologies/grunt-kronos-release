@@ -42,7 +42,7 @@ bump: {
   options: {
     files: ['package.json', 'bower.json'],
     commitFiles: ['package.json', 'bower.json', 'CHANGELOG.md'],
-    push: true,
+    push: false,
     pushTo: 'origin',
     createTag: false 
   }
