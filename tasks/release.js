@@ -140,9 +140,10 @@ module.exports = function(grunt) {
 
       var bumpType = 'pre' + versionType;
     
+      grunt.task.run('gitcheckout:dev');
       grunt.task.run('gitpull:dev');
-      grunt.task.run('gitpull:release');
       grunt.task.run('gitcheckout:release');
+      grunt.task.run('gitpull:release');
       grunt.task.run('gitmerge:dev');
       grunt.task.run('bump:' + bumpType);   
       grunt.task.run('gitpush:release');
@@ -158,9 +159,10 @@ module.exports = function(grunt) {
     else if(releaseCmd == 'finish'){
       grunt.log.writeln('Finishing release');
 
-      grunt.task.run('gitpull:release');
+      grunt.task.run('gitcheckout:stable');
       grunt.task.run('gitpull:stable');
       grunt.task.run('gitcheckout:release');
+      grunt.task.run('gitpull:release');
 
       // Remove the prerelease
       grunt.task.run('bump-only:patch');
@@ -222,8 +224,8 @@ module.exports = function(grunt) {
       var hotfixBranch = options.hotfixBranchPrefix + hotfixName;
       grunt.log.writeln('Starting hotfix branch : ' + hotfixBranch);
 
-      grunt.task.run('gitpull:stable');
       grunt.task.run('gitcheckout:stable');
+      grunt.task.run('gitpull:stable');
 
       grunt.config.merge({
         gitcheckout: {
@@ -298,7 +300,7 @@ module.exports = function(grunt) {
         }
       });
 
-      //grunt.task.run('gitpull:hotfix');
+      grunt.task.run('gitcheckout:stable');
       grunt.task.run('gitpull:stable');
       grunt.task.run('gitcheckout:hotfix');
       grunt.task.run('bump-only:patch');
