@@ -19,12 +19,12 @@
     "grunt": ">=0.4.0"
   },
   "devDependencies": {
+    "exec-sync": "^0.1.6",
     "grunt": "~0.4.5",
     "grunt-git": "~0.2.14",
     "grunt-release": "^0.7.0",
     "load-grunt-tasks": "^0.4.0",
-    "matchdep": "^0.3.0",
-    "semver": "^3.0.1"
+    "matchdep": "^0.3.0"
   },
   "keywords": [
     "gruntplugin"
@@ -33,7 +33,6 @@
   "dependencies": {
     "grunt-bump": "0.0.15",
     "grunt-changelog": "^0.2.2",
-    "grunt-git": "^0.2.14",
-    "semver": "^3.0.1"
+    "grunt-git": "^0.2.14"
   }
 }

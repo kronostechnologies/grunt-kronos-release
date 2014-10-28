@@ -12,7 +12,7 @@
 
 'use strict';
 
-var semver = require('semver');
+var execSync = require('exec-sync');
 
 module.exports = function(grunt) {
 
@@ -128,8 +128,6 @@ module.exports = function(grunt) {
     configureGitTasks(options);
 
     if (releaseCmd == 'start') {
-      grunt.log.writeln('Starting release');
-      
       if (typeof versionType == 'undefined'){
         versionType = 'minor';
       }
@@ -149,16 +147,12 @@ module.exports = function(grunt) {
       grunt.task.run('gitpush:release');
     }
     else if(releaseCmd == 'continue'){
-      grunt.log.writeln('Continue release');
-
       grunt.task.run('gitcheckout:release');
       grunt.task.run('bump:prerelease');
       grunt.task.run('gitpush:release');
 
     }
     else if(releaseCmd == 'finish'){
-      grunt.log.writeln('Finishing release');
-
       grunt.task.run('gitcheckout:stable');
       grunt.task.run('gitpull:stable');
       grunt.task.run('gitcheckout:release');
@@ -171,35 +165,28 @@ module.exports = function(grunt) {
       grunt.task.run('gitpush:release');
       grunt.task.run('gitcheckout:stable');
       grunt.task.run('gitmerge:release');
+      grunt.task.run('release:tag');
+      grunt.task.run('gitpush:stable');
 
+      grunt.task.run('gitcheckout:dev');
+      grunt.task.run('gitmerge:release');
+      grunt.task.run('gitpush:dev');
+    }
+    else if(releaseCmd == 'tag'){
+      
       var version = null;
       grunt.file.read(options.versionFile).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, suffix) {
         // Version should be increment here also because bump task did not run yet.
-        version = semver.inc(parsedVersion, 'patch');
+        version = parsedVersion
       });
 
       if (!version) {
         grunt.fatal('Can not find a version in ' + options.versionFile);
       }
 
-      grunt.log.writeln(version);
-      grunt.config.merge({
-        gittag: {
-          nextRelease: {
-            options: {
-              tag: 'v' + version,
-              message: 'Version ' +  version
-            }
-          }
-        }
-      });
-      grunt.task.run('gittag:nextRelease');
-
-      grunt.task.run('gitpush:stable');
-
-      grunt.task.run('gitcheckout:dev');
-      grunt.task.run('gitmerge:release');
-      grunt.task.run('gitpush:dev');
+      execSync('git tag -a v' + version  + ' -m "Version ' + version + '"');
+      
+      grunt.log.ok('Tagged version : ' + version);
     }
     else {
       grunt.fatal('Invalid release command "' + releaseCmd + '". Should be start|continue|finish.');
@@ -250,17 +237,6 @@ module.exports = function(grunt) {
       var hotfixBranch = options.hotfixBranchPrefix + hotfixName;
       grunt.log.writeln('Release hotfix branch : ' + hotfixBranch);
       
-      
-      var version = null;
-      grunt.file.read(options.versionFile).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, suffix) {
-        // Version should be increment here also because bump task did not run yet.
-        version = semver.inc(parsedVersion, 'patch');
-      });
-
-      if (!version) {
-        grunt.fatal('Can not find a version in ' + options.versionFile);
-      }
-      
       grunt.config.merge({
         gitpull: {
           hotfix: {
@@ -285,14 +261,6 @@ module.exports = function(grunt) {
             }
           }
         },
-        gittag: {
-          hotfix: {
-            options: {
-              tag: 'v' + version,
-              message: 'Version ' +  version
-            }
-          }
-        },
         bump: {
           options: {
             push: false
@@ -308,7 +276,7 @@ module.exports = function(grunt) {
       grunt.task.run('bump-commit');
       grunt.task.run('gitcheckout:stable');
       grunt.task.run('gitmerge:hotfix');
-      grunt.task.run('gittag:hotfix');
+      grunt.task.run('release:tag');
       grunt.task.run('gitpush:stable');
 
       //TODO: Delete hotfix branch. grunt-git does not support gitbranch task
