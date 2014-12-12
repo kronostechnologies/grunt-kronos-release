@@ -336,35 +336,31 @@ module.exports = function(grunt) {
       if (typeof version == 'undefined'){
         grunt.fatal('Cannot find current version in ' + options.versionFile);
       }
-        
-      grunt.log.ok('Releasing master changes, changing version "' + version + '" to version "' + upstreamVersion + '-0' + '"' );
+      
+      var newVersion = upstreamVersion + '-0'
+      
+      grunt.log.ok('Releasing master changes, changing version "' + version + '" to version "' + newVersion + '"' );
         
       grunt.task.run('gitcheckout:dev');
-      execSync('grunt bump:pre --setversion=' + upstreamVersion + '-0' );
+      execSync('grunt bump:pre --setversion=' + newVersion );
       grunt.task.run('gitpush:dev');
-      grunt.task.run('gitcheckout:release');
-      grunt.task.run('gitpull:release');
-      grunt.task.run('gitmerge:dev');
-      grunt.task.run('gitpush:release');   
+      grunt.task.run('upstream:release');
     }
     else if (repackCmd == 'repack'){
       grunt.task.run('gitcheckout:dev');
       grunt.task.run('gitpull:dev');
       grunt.task.run('bump:pre')
-      grunt.task.run('upstream:tag')
       grunt.task.run('gitpush:dev');
-      grunt.task.run('gitcheckout:release');
-      grunt.task.run('gitpull:release');
-      grunt.task.run('gitmerge:dev');
-      grunt.task.run('gitpush:release');
-      grunt.task.run('gitcheckout:dev');
+      grunt.task.run('upstream:release');
     }
     else if (repackCmd == 'release'){
       grunt.task.run('gitcheckout:release');
       grunt.task.run('gitpull:release');
       grunt.task.run('gitmerge:dev');
+      grunt.task.run('upstream:tag')
       grunt.task.run('gitpush:release');
       grunt.task.run('gitcheckout:dev');
+
     }
     else if (repackCmd == 'stable'){
       grunt.task.run('gitcheckout:stable');
