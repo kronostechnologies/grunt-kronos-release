@@ -351,6 +351,7 @@ module.exports = function(grunt) {
       grunt.task.run('gitcheckout:dev');
       grunt.task.run('gitpull:dev');
       grunt.task.run('bump:pre')
+      grunt.task.run('upstream:tag')
       grunt.task.run('gitpush:dev');
       grunt.task.run('gitcheckout:release');
       grunt.task.run('gitpull:release');
@@ -372,8 +373,24 @@ module.exports = function(grunt) {
       grunt.task.run('gitpush:stable');
       grunt.task.run('gitcheckout:dev');
     }
+    else if(repackCmd == 'tag'){
+      
+      var version = null;
+      grunt.file.read(options.versionFile).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, suffix) {
+        // Version should be increment here also because bump task did not run yet.
+        version = parsedVersion
+      });
+
+      if (!version) {
+        grunt.fatal('Can not find a version in ' + options.versionFile);
+      }
+
+      execSync('git tag -a v' + version  + ' -m "Version ' + version + '"');
+      
+      grunt.log.ok('Tagged version : ' + version);
+    }
     else {
-      grunt.fatal('Invalid release command "' + repackCmd + '". Should be merge|pack|repack|stable.');
+      grunt.fatal('Invalid release command "' + repackCmd + '". Should be merge|pack|repack|release|stable.');
     }
   });
 };
