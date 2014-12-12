@@ -20,11 +20,12 @@ module.exports = function(grunt) {
     devBranch: 'master',
     releaseBranch: 'release/main',
     stableBranch: 'stable/main',
+    upstreamBranch: 'upstream',
     hotfixBranchPrefix: 'hotfix/',
     remote: 'origin',
     versionFile: 'package.json'
   };
-
+  
   var configureGitTasks = function(options){
     grunt.config.merge({
       gitpull: {
@@ -106,7 +107,7 @@ module.exports = function(grunt) {
             tags: true
           }
         }
-
+        
       },
       bump: {
         options: {
@@ -121,7 +122,7 @@ module.exports = function(grunt) {
   var VERSION_REGEXP = /([\'|\"]?version[\'|\"]?[ ]*:[ ]*[\'|\"]?)([\d||A-a|.|-]*)([\'|\"]?)/i;
 
 
-  var DESC = 'release';
+  var DESC = 'Prepare a release';
   grunt.registerTask('release', DESC, function(releaseCmd, versionType) {
     
     var options = this.options(DEFAULT_OPTIONS);
@@ -193,15 +194,13 @@ module.exports = function(grunt) {
     }
   });
 
-  
-  var DESC = 'Prempare a hotfix';
-  grunt.registerTask('hotfix', DESC, function(releaseCmd, hotfixName) {
+  var DESC = 'Prepare a hotfix';
+  grunt.registerTask('hotfix', DESC, function(hotfixCmd, hotfixName) {
     
     var options = this.options(DEFAULT_OPTIONS);
     configureGitTasks(options);
 
-
-    if (releaseCmd == 'start') {
+    if (hotfixCmd == 'start') {
 
       
       if (typeof hotfixName == 'undefined'){
@@ -228,7 +227,7 @@ module.exports = function(grunt) {
       grunt.task.run('gitcheckout:hotfix');
 
     }
-    else if(releaseCmd == 'finish'){
+    else if(hotfixCmd == 'finish'){
       
       if (typeof hotfixName == 'undefined'){
         grunt.fatal('hotfix name is required. (ex: grunt hotfix:finish:fix-name)');
@@ -285,15 +284,92 @@ module.exports = function(grunt) {
 
     }
     else {
-      grunt.fatal('Invalid hotfix command "' + releaseCmd + '". Should be start|finish.');
+      grunt.fatal('Invalid hotfix command "' + hotfixCmd + '". Should be start|finish.');
     }
 
-
   });
-
   
-
-
+  var DESC = 'Repackage upstream';
+  grunt.registerTask('upstream', DESC, function(repackCmd, upstreamVersion) {
+      
+    var options = this.options(DEFAULT_OPTIONS);
+    configureGitTasks(options);
+    grunt.config.merge({
+        gitmerge: {
+          upstream: {
+            options: {
+              branch: options.upstreamBranch,
+              noff: true
+            }
+          }
+        },
+        gitcheckout: {
+          upstream: {
+            options: {
+              branch: options.upstreamBranch,
+            }
+          }
+        },
+        gitpull: {
+          upstream: {
+            options: {
+              branch: options.upstreamBranch,
+            }
+          }
+        }
+      });
+      
+    if(repackCmd == 'merge'){
+      grunt.task.run('gitcheckout:dev');
+      grunt.task.run('gitpull:dev');
+      grunt.task.run('gitmerge:upstream');
+      grunt.log.ok('please review upstream merge and commit to devBranch');
+    } 
+    else if (repackCmd == 'pack') {
+        
+      if (typeof upstreamVersion == 'undefined') {
+        grunt.fatal('upstream version to repack is required. (ex: grunt upstream:pack:2.1.4)');
+      }
+      
+      var version = grunt.file.readJSON(options.versionFile).version;
+      
+      if (typeof version == 'undefined'){
+        grunt.fatal('Cannot find current version in ' + options.versionFile);
+      }
+        
+      grunt.log.ok('Releasing master changes, changing version "' + version + '" to version "' + upstreamVersion + '-0' + '"' );
+        
+      grunt.task.run('gitcheckout:dev');
+      execSync('grunt bump:pre --setversion=' + upstreamVersion + '-0' );
+      grunt.task.run('gitpush:dev');
+      grunt.task.run('gitcheckout:release');
+      grunt.task.run('gitpull:release');
+      grunt.task.run('gitmerge:dev');
+      grunt.task.run('gitpush:release');
+        
+    }
+    else if (repackCmd == 'repack'){
+      grunt.task.run('gitcheckout:dev');
+      grunt.task.run('gitpull:dev');
+      grunt.task.run('bump:pre')
+      grunt.task.run('gitpush:dev');
+      grunt.task.run('gitcheckout:release');
+      grunt.task.run('gitpull:release');
+      grunt.task.run('gitmerge:dev');
+      grunt.task.run('gitpush:release');
+      grunt.task.run('gitcheckout:dev');
+    }
+    else if (repackCmd == 'stable'){
+      grunt.task.run('gitcheckout:stable');
+      grunt.task.run('gitpull:stable');
+      grunt.task.run('gitmerge:release');
+      grunt.task.run('gitpush:stable');
+      grunt.task.run('gitcheckout:dev');
+    }
+    else {
+      grunt.fatal('Invalid release command "' + repackCmd + '". Should be merge|pack|repack|stable.');
+    }
+  });
 };
 
 // vim: set ts=2 sw=2 sts=2 et :
