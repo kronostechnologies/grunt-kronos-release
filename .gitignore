@@ -3,3 +3,4 @@ node_modules
 nbproject
 build.xml
 manifest.mf
+npm-debug.log
