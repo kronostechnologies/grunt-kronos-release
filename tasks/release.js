@@ -345,14 +345,20 @@ module.exports = function(grunt) {
       grunt.task.run('gitcheckout:release');
       grunt.task.run('gitpull:release');
       grunt.task.run('gitmerge:dev');
-      grunt.task.run('gitpush:release');
-        
+      grunt.task.run('gitpush:release');   
     }
     else if (repackCmd == 'repack'){
       grunt.task.run('gitcheckout:dev');
       grunt.task.run('gitpull:dev');
       grunt.task.run('bump:pre')
       grunt.task.run('gitpush:dev');
+      grunt.task.run('gitcheckout:release');
+      grunt.task.run('gitpull:release');
+      grunt.task.run('gitmerge:dev');
+      grunt.task.run('gitpush:release');
+      grunt.task.run('gitcheckout:dev');
+    }
+    else if (repackCmd == 'release'){
       grunt.task.run('gitcheckout:release');
       grunt.task.run('gitpull:release');
       grunt.task.run('gitmerge:dev');
