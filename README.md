@@ -77,6 +77,12 @@ Default value: `hotfix/`
 
 Prefix used by grunt `hotfix:start` and `hotfix:finish` to generate hotfix branch name from hotfix name.
 
+#### options.upstreamBranch
+Type: `String`
+Default value: `upstream`
+
+Upstream branch name. The upstream branch is the branch used to merge upstream sources.
+
 #### options.remote
 Type: `String`
 Default value: `origin`
@@ -188,5 +194,40 @@ grunt.registerTask('release-ia', 'Release for ia', function(releaseCmd, versionT
 
  grunt.task.run('release:' + releaseCmd + ':' + versionType);
 });
+
+```
+#### Packaging an upstream lib
+
+Used for `kronos-php-*` and z-push
+
+```
+# Upstream version is 1.2.3 
+# Current version is 1.2.2
+# the upstream branch contains the upstream code to be fetched
+
+# merge upstream changes to master
+grunt upstream:merge
+
+# < fix conflicts && review changes >
+
+# package new upstream in master 
+grunt upstream:pack:1.2.3
+
+# > changes version 1.2.2-* to version 1.2.3-0
+
+# Develop new features + send pull requests upstream
+
+# When you are ready to release the lib
+grunt upstream:repack
+
+> creates version 1.2.3-1
+> merges master to release/main
+> triggers Jenkins build
+
+# when lib is fully tested, merge release in stable
+grunt upstream:stable
+
+> merges release/main to stable/main
+> triggers Jenkins build
 
 ```

@@ -1,1 +1,5 @@
 node_modules
+/nbproject/private/
+nbproject
+build.xml
+manifest.mf
