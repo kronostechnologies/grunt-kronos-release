@@ -28,7 +28,7 @@ module.exports = function(grunt) {
   
   var configureGitTasks = function(options){
 
-    var lastStableTag = execSync('git describe --tags --abbrev=0 ' + options.stableBranch).trim();
+    var lastStableTag = execSync('git fetch -q ' + options.remote + ' ' + options.stableBranch + ' && git describe --tags --abbrev=0 ' + options.remote + '/' + options.stableBranch).trim();
 
     grunt.config.merge({
       gitpull: {
