@@ -27,6 +27,9 @@ module.exports = function(grunt) {
   };
   
   var configureGitTasks = function(options){
+
+    var lastStableTag = execSync('git describe --tags --abbrev=0 ' + options.stableBranch).trim();
+
     grunt.config.merge({
       gitpull: {
         dev: {
@@ -114,9 +117,13 @@ module.exports = function(grunt) {
           push: false,
           createTag: false
         }
+      },
+      changelog: {
+        options: {
+          from: lastStableTag
+        }
       }
     });
-
   };
 
   var VERSION_REGEXP = /([\'|\"]?version[\'|\"]?[ ]*:[ ]*[\'|\"]?)([\d||A-a|.|-]*)([\'|\"]?)/i;
