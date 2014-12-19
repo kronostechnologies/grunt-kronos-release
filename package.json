@@ -1,7 +1,7 @@
 {
   "name": "grunt-kronos-release",
   "description": "Manage release flow for Kronos Technologies applications",
-  "version": "0.1.15",
+  "version": "0.2.0",
   "homepage": "https://github.com/kronostechnologies/grunt-kronos-release",
   "author": {
     "name": "Eric Durand-Tremblay",
