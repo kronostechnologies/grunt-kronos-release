@@ -186,8 +186,11 @@ grunt release:status
 ```
 
 `Released`: All dev commits are merged to release and stable branches.
+
 `Staging`: Next release is currently staging into release branch.
+
 `Unreleased`: Dev branch contain unreleased commits.
+
 `Staging+Unreleased`: Next release is currently staging into release branch ans some commit from dev branch are not staged.
 
 
