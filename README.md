@@ -86,7 +86,7 @@ Upstream branch name. The upstream branch is the branch used to merge upstream s
 #### options.remote
 Type: `String`
 Default value: `origin`
-
+G
 Git remote name for the repository.
 
 
@@ -179,6 +179,19 @@ git checkout -f origin/release/main -- package.json bower.json # Keep release/ma
 grunt:release:contiue # Increment pre-release
 ```
 
+#### Know status of dev, release and stable branch
+
+```
+grunt release:status
+```
+
+`Released`: All dev commits are merged to release and stable branches.
+`Staging`: Next release is currently staging into release branch.
+`Unreleased`: Dev branch contain unreleased commits.
+`Staging+Unreleased`: Next release is currently staging into release branch ans some commit from dev branch are not staged.
+
+
+
 #### Create an alternate release task
 
 ```js
@@ -196,6 +209,7 @@ grunt.registerTask('release-ia', 'Release for ia', function(releaseCmd, versionT
 });
 
 ```
+
 #### Packaging an upstream lib
 
 Used for `kronos-php-*` and z-push

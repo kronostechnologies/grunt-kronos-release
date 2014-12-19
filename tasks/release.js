@@ -196,6 +196,32 @@ module.exports = function(grunt) {
       
       grunt.log.ok('Tagged version : ' + version);
     }
+    else if(releaseCmd == 'status'){
+
+      // Count number of dev commits ahead of release branch
+      var rev = "origin/" + options.releaseBranch + "...origin/" + options.devBranch;
+      var grep_pattern = '\'^(?!Merge branch \'"\'"\'' + options.releaseBranch  + '\'"\'"\').+$\'';
+      var matches = execSync("git rev-list --count --left-right " + rev + ' --grep ' + grep_pattern + ' --perl-regexp').match(/\d+\t(\d+)/);
+      var releaseAhead = (matches && matches[1] > 0);
+      
+      // Count number of release commits ahead of stable branch
+      var rev = "origin/" + options.stableBranch + "...origin/" + options.releaseBranch;
+      var matches = execSync("git rev-list --count --left-right " + rev).match(/\d+\t(\d+)/);
+      var stableAhead = (matches && matches[1] > 0);
+
+      if(!releaseAhead && !stableAhead) {
+        grunt.log.ok('Released <- All dev commits are merged to release and stable branches');
+      }
+      else if(!releaseAhead){
+        grunt.log.ok('Staging <- Next release is currently staging into release branch');
+      }
+      else if(!stableAhead){
+        grunt.log.ok('Unreleased <- Dev branch contain unreleased commits');
+      }
+      else {
+        grunt.log.ok('Staging+Unreleased <- Next release is currently staging into release branch ans some commit from dev branch are not staged.');
+      }
+    }
     else {
       grunt.fatal('Invalid release command "' + releaseCmd + '". Should be start|continue|finish.');
     }
