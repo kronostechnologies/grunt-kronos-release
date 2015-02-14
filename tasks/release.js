@@ -11,8 +11,8 @@
  */
 
 'use strict';
-
 var execSync = require('exec-sync');
+var sleep = require('sleep');
 
 module.exports = function(grunt) {
 
@@ -161,21 +161,22 @@ module.exports = function(grunt) {
 
     }
     else if(releaseCmd == 'finish'){
-      grunt.task.run('gitcheckout:stable');
-      grunt.task.run('gitpull:stable');
       grunt.task.run('gitcheckout:release');
       grunt.task.run('gitpull:release');
+      grunt.task.run('gitcheckout:stable');
+      grunt.task.run('gitpull:stable');
+      grunt.task.run('gitmerge:release');
 
       // Remove the prerelease
       grunt.task.run('bump-only:patch');
       grunt.task.run('changelog');
       grunt.task.run('bump-commit');
-      grunt.task.run('gitpush:release');
-      grunt.task.run('gitcheckout:stable');
-      grunt.task.run('gitmerge:release');
-      grunt.task.run('release:tag');
       grunt.task.run('gitpush:stable');
-
+      grunt.task.run('sleep');
+      grunt.task.run('release:tag');
+      grunt.task.run('gitcheckout:release');
+      grunt.task.run('gitmerge:stable');
+      grunt.task.run('gitpush:release');
       grunt.task.run('gitcheckout:dev');
       grunt.task.run('gitmerge:release');
       grunt.task.run('gitpush:dev');
@@ -421,6 +422,11 @@ module.exports = function(grunt) {
     else {
       grunt.fatal('Invalid release command "' + repackCmd + '". Should be merge|pack|repack|release|stable.');
     }
+  });
+
+  grunt.registerTask('sleep', 'Wait for push triggers', function(arg1, arg2) {
+      grunt.log.ok('Waiting for magic to happen');
+      sleep.sleep(10)
   });
 };
 
