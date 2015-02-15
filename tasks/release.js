@@ -301,20 +301,20 @@ module.exports = function(grunt) {
         }
       });
 
+      grunt.task.run('gitcheckout:hotfix');
+      grunt.task.run('gitpull:hotfix');
       grunt.task.run('gitcheckout:stable');
       grunt.task.run('gitpull:stable');
-      grunt.task.run('gitcheckout:hotfix');
+      grunt.task.run('gitmerge:hotfix');
       grunt.task.run('bump-only:patch');
       grunt.task.run('changelog');
       grunt.task.run('bump-commit');
-      grunt.task.run('gitcheckout:stable');
-      grunt.task.run('gitmerge:hotfix');
       grunt.task.run('release:tag');
       grunt.task.run('gitpush:stable');
 
       //TODO: Delete hotfix branch. grunt-git does not support gitbranch task
     
-      grunt.log.writeln('Don\'t forget to merge back ' + options.stableBranch + ' into ' + options.devBranch + '( or in ' + options.releasBranch + ' if there is a release pending)');
+      grunt.log.writeln('Don\'t forget to merge back ' + options.stableBranch + ' into ' + options.devBranch + '( or in ' + options.releaseBranch + ' if there is a release pending)');
 
     }
     else {
