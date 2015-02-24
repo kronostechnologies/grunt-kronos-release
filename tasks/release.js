@@ -174,12 +174,21 @@ module.exports = function(grunt) {
       grunt.task.run('gitpush:stable');
       grunt.task.run('sleep');
       grunt.task.run('release:tag');
+      //grunt.task.run('gitcheckout:release');
+      //grunt.task.run('gitmerge:stable');
+      //grunt.task.run('gitpush:release');
+      //grunt.task.run('gitcheckout:dev');
+      //grunt.task.run('gitmerge:release');
+      //grunt.task.run('gitpush:dev');
+    }
+    else if(releaseCmd == 'finish-merge'){
       grunt.task.run('gitcheckout:release');
       grunt.task.run('gitmerge:stable');
       grunt.task.run('gitpush:release');
       grunt.task.run('gitcheckout:dev');
       grunt.task.run('gitmerge:release');
       grunt.task.run('gitpush:dev');
+
     }
     else if(releaseCmd == 'tag'){
       
