@@ -425,8 +425,8 @@ module.exports = function(grunt) {
   });
 
   grunt.registerTask('sleep', 'Wait for push triggers', function(arg1, arg2) {
-      grunt.log.ok('Waiting for magic to happen');
-      sleep.sleep(10)
+      grunt.log.ok('Waiting 30 seconds for magic to happen (jenkins build)');
+      sleep.sleep(30)
   });
 };
 
