@@ -28,6 +28,7 @@ grunt.initConfig({
       releaseBranch: 'release/main',
       stableBranch: 'stable/main',
       hotfixBranchPrefix: 'hotfix/',
+      featureBranchPrefix: 'feature/',
       remote: 'origin',
       versionFile: 'package.json'
     }
