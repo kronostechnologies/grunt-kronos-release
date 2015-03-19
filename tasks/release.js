@@ -22,6 +22,7 @@ module.exports = function(grunt) {
     stableBranch: 'stable/main',
     upstreamBranch: 'upstream',
     hotfixBranchPrefix: 'hotfix/',
+    featureBranchPrefix: 'feature/',
     remote: 'origin',
     versionFile: 'package.json'
   };
@@ -279,6 +280,8 @@ module.exports = function(grunt) {
       var hotfixBranch = options.hotfixBranchPrefix + hotfixName;
       grunt.log.writeln('Release hotfix branch : ' + hotfixBranch);
       
+      var upstreamExists = (execSync('git ls-remote ' + options.remote + ' ' + hotfixBranch).trim() != "");
+      
       grunt.config.merge({
         gitpull: {
           hotfix: {
@@ -311,7 +314,9 @@ module.exports = function(grunt) {
       });
 
       grunt.task.run('gitcheckout:hotfix');
-      grunt.task.run('gitpull:hotfix');
+      if(upstreamExists) {
+        grunt.task.run('gitpull:hotfix');
+      }
       grunt.task.run('gitcheckout:stable');
       grunt.task.run('gitpull:stable');
       grunt.task.run('gitmerge:hotfix');
@@ -324,6 +329,103 @@ module.exports = function(grunt) {
       //TODO: Delete hotfix branch. grunt-git does not support gitbranch task
     
       grunt.log.writeln('Don\'t forget to merge back ' + options.stableBranch + ' into ' + options.devBranch + '( or in ' + options.releaseBranch + ' if there is a release pending)');
+
+    }
+    else {
+      grunt.fatal('Invalid hotfix command "' + hotfixCmd + '". Should be start|finish.');
+    }
+
+  });
+  
+  var DESC = 'Prepare a feature';
+  grunt.registerTask('feature', DESC, function(featureCmd, featureName) {
+    
+    var options = this.options(DEFAULT_OPTIONS);
+    configureGitTasks(options);
+
+    if (featureCmd == 'start') {
+
+      
+      if (typeof featureName == 'undefined'){
+        grunt.fatal('feature name is required. (ex: grunt feature:start:feature-name)');
+      }
+
+      var featureBranch = options.featureBranchPrefix + featureName;
+      grunt.log.writeln('Starting feature branch : ' + featureBranch);
+
+      grunt.task.run('gitcheckout:dev');
+      grunt.task.run('gitpull:dev');
+
+      grunt.config.merge({
+        gitcheckout: {
+          feature: {
+            options: {
+              branch: featureBranch,
+              create: true
+            }
+          }
+        }
+      });
+
+      grunt.task.run('gitcheckout:feature');
+
+    }
+    else if(featureCmd == 'finish'){
+      
+      if (typeof featureName == 'undefined'){
+        grunt.fatal('feature name is required. (ex: grunt feature:finish:feature-name)');
+      }
+
+      var featureDescr = grunt.option('descr') || featureName;
+
+      var featureBranch = options.featureBranchPrefix + featureName;
+      grunt.log.writeln('Release feature branch : ' + featureBranch);
+
+
+      var upstreamExists = (execSync('git ls-remote ' + options.remote + ' ' + featureBranch).trim() != "");
+
+      grunt.config.merge({
+        gitpull: {
+          feature: {
+            options: {
+              remote: options.remote,
+              branch: featureBranch
+            }
+          }
+        },
+        gitcheckout: {
+          feature: {
+            options: {
+              branch: featureBranch,
+            }
+          }
+        },
+        gitmerge: {
+          feature: {
+            options: {
+              branch: featureBranch,
+              noff: true,
+              message: 'feat: ' + featureDescr
+            }
+          }
+        },
+        bump: {
+          options: {
+            push: false
+          }
+        }
+      });
+
+      grunt.task.run('gitcheckout:feature');
+      if(upstreamExists) {
+        grunt.task.run('gitpull:feature');
+      }
+      grunt.task.run('gitcheckout:dev');
+      grunt.task.run('gitpull:dev');
+      grunt.task.run('gitmerge:feature');
+
+      //TODO: Delete feature branch.
+    
 
     }
     else {

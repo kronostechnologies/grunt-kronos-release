@@ -77,6 +77,12 @@ Default value: `hotfix/`
 
 Prefix used by grunt `hotfix:start` and `hotfix:finish` to generate hotfix branch name from hotfix name.
 
+#### options.featureBranchPrefix
+Type: `String`
+Default value: `feature/`
+
+Prefix used by grunt `feature:start` and `feature:finish` to generate feature branch name from feature name.
+
 #### options.upstreamBranch
 Type: `String`
 Default value: `upstream`
@@ -98,6 +104,24 @@ JSON file to get the package current version.
 
 
 ### Usage Examples
+
+
+#### Start a new feature branch
+
+Start a new `feature/featureName` branch from current dev branch.
+
+```
+grunt feature:start:awesome-feature
+```
+
+#### Finish a feature branch
+
+Merge a feature branch into dev branch. For example, merge `feature/awesome-feature` into `master`.
+
+```
+grunt feature:finish:awesome-feature --descr "Awesome feaure description"
+```
+
 
 #### Prepare new release to be packaged
 
@@ -169,7 +193,7 @@ git checkout master
 git merge --no-ff stable/main # Should not conflict
 ```
 
-#### Bring back hotfix changes hen a release is already started.
+#### Bring back hotfix changes when a release is already started.
 
 ```
 git checkout release/main
@@ -178,6 +202,7 @@ git merge --no-ff stable/main
 git checkout -f origin/release/main -- package.json bower.json # Keep release/main version
 grunt:release:contiue # Increment pre-release
 ```
+
 
 #### Know status of dev, release and stable branch
 
