@@ -31,7 +31,6 @@
   ],
   "readmeFilename": "README.md",
   "dependencies": {
-    "exec-sync": "^0.1.6",
     "grunt": "~0.4.5",
     "grunt-bump": "0.0.15",
     "grunt-git": "~0.2.14",
