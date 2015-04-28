@@ -11,8 +11,14 @@
  */
 
 'use strict';
-var execSync = require('exec-sync');
+var exec = require('sync-exec');
 var sleep = require('sleep');
+
+var execSync = function(cmd) {
+  var result = exec(cmd);
+  return result.stdout;
+}
+
 
 module.exports = function(grunt) {
 
