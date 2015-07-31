@@ -19,7 +19,7 @@
     "grunt": ">=0.4.0"
   },
   "devDependencies": {
-    "sleep": "^2.0.0",
+    "sleep": "git+https://github.com/kronos-pbrideau/node-sleep.git",
     "grunt": "~0.4.5",
     "grunt-git": "~0.2.14",
     "grunt-bump": "0.0.15",
@@ -36,7 +36,7 @@
     "grunt-git": "~0.2.14",
     "grunt-release": "^0.7.0",
     "load-grunt-tasks": "^0.4.0",
-    "sleep": "^2.0.0",
+    "sleep": "git+https://github.com/kronos-pbrideau/node-sleep.git",
     "sync-exec": "^0.5.0"
   }
 }
