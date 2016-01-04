@@ -16,7 +16,8 @@
     "node": ">= 0.8.0"
   },
   "peerDependencies": {
-    "grunt": ">=0.4.0"
+    "grunt": ">=0.4.0",
+    "grunt-conventional-changelog": ">=5.0.0"
   },
   "devDependencies": {
     "sleep": "git+https://github.com/kronos-pbrideau/node-sleep.git",
