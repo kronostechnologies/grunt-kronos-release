@@ -17,7 +17,7 @@
   },
   "peerDependencies": {
     "grunt": ">=0.4.0",
-    "grunt-conventional-changelog": ">=5.0.0"
+    "grunt-conventional-changelog": "git+https://github.com/kronostechnologies/grunt-conventional-changelog.git#717b6dfa5298ca8bf7f1782ddf8ae36b18c27267"
   },
   "devDependencies": {
     "sleep": "git+https://github.com/kronos-pbrideau/node-sleep.git",
