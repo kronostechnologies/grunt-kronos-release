@@ -194,7 +194,7 @@ module.exports = function(grunt) {
           createTag: false
         }
       },
-      changelog: {
+      conventionalChangelog: {
         options: {
           from: lastStableTag
         }
@@ -245,7 +245,7 @@ module.exports = function(grunt) {
 
       // Remove the prerelease
       grunt.task.run('bump-only:patch');
-      grunt.task.run('changelog');
+      grunt.task.run('conventionalChangelog');
       grunt.task.run('bump-commit');
       grunt.task.run('gitpush:stable');
       grunt.task.run('sleep');
@@ -395,7 +395,7 @@ module.exports = function(grunt) {
       grunt.task.run('gitpull:stable');
       grunt.task.run('gitmerge:hotfix');
       grunt.task.run('bump-only:patch');
-      grunt.task.run('changelog');
+      grunt.task.run('conventionalChangelog');
       grunt.task.run('bump-commit');
       grunt.task.run('release:tag');
       grunt.task.run('gitpush:stable');
