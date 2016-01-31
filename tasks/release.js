@@ -14,7 +14,7 @@
 
 'use strict';
 
-var oldExecSync = function(cmd) {
+var execSync = function(cmd) {
   var exec = require('sync-exec');
   var result = exec(cmd);
   return result.stdout;
@@ -36,6 +36,7 @@ var spawnSync= function(cmd) {
 Array.prototype.contains = function(obj) {
       return this.indexOf(obj) > -1;
 };
+
 String.prototype.in = function(obj) {
   return obj.contains(this);
 }
@@ -65,10 +66,6 @@ var getLatestTag = function (remote, branch) {
 }
 var deleteBranch = function (branch)  {
   spawnSync(`git branch -D ${branch}`);
-}
-
-var getMergeBaseCommit = function (devBranch, featBranch) {
-  return 
 }
 
 var countCommits = function (refA, refB) {
@@ -116,7 +113,7 @@ module.exports = function(grunt) {
   
   var configureGitTasks = function(options){
 
-    //var lastStableTag = oldExecSync('git fetch -q ' + options.remote + ' ' + options.stableBranch + ' && git describe --tags --abbrev=0 ' + options.remote + '/' + options.stableBranch).trim();
+    //var lastStableTag = execSync('git fetch -q ' + options.remote + ' ' + options.stableBranch + ' && git describe --tags --abbrev=0 ' + options.remote + '/' + options.stableBranch).trim();
 
     var lastStableTag = getLatestTag(options.remote, options.stableBranch);
 
@@ -292,7 +289,7 @@ module.exports = function(grunt) {
         grunt.fatal('Can not find a version in ' + options.versionFile);
       }
 
-      oldExecSync('git tag -a v' + version  + ' -m "Version ' + version + '"');
+      execSync('git tag -a v' + version  + ' -m "Version ' + version + '"');
       
       grunt.log.ok('Tagged version : ' + version);
     }
@@ -301,12 +298,12 @@ module.exports = function(grunt) {
       // Count number of dev commits ahead of release branch
       var rev = "origin/" + options.releaseBranch + "...origin/" + options.devBranch;
       var grep_pattern = '\'^(?!Merge branch \'"\'"\'' + options.releaseBranch  + '\'"\'"\').+$\'';
-      var matches = oldExecSync("git rev-list --count --left-right " + rev + ' --grep ' + grep_pattern + ' --perl-regexp').match(/\d+\t(\d+)/);
+      var matches = execSync("git rev-list --count --left-right " + rev + ' --grep ' + grep_pattern + ' --perl-regexp').match(/\d+\t(\d+)/);
       var releaseAhead = (matches && matches[1] > 0);
       
       // Count number of release commits ahead of stable branch
       var rev = "origin/" + options.stableBranch + "...origin/" + options.releaseBranch;
-      var matches = oldExecSync("git rev-list --count --left-right " + rev).match(/\d+\t(\d+)/);
+      var matches = execSync("git rev-list --count --left-right " + rev).match(/\d+\t(\d+)/);
       var stableAhead = (matches && matches[1] > 0);
 
       if(!releaseAhead && !stableAhead) {
@@ -569,7 +566,7 @@ module.exports = function(grunt) {
       grunt.log.ok('Releasing master changes, changing version "' + version + '" to version "' + newVersion + '"' );
         
       grunt.task.run('gitcheckout:dev');
-      oldExecSync('grunt bump:pre --setversion=' + newVersion );
+      execSync('grunt bump:pre --setversion=' + newVersion );
       grunt.task.run('gitpush:dev');
       grunt.task.run('upstream:release');
     }
@@ -616,12 +613,12 @@ module.exports = function(grunt) {
   });
 
   grunt.registerTask('sleep', 'Wait for push triggers', function(arg1, arg2) {
-      var sleep = require('sleep');
-      grunt.log.ok('Waiting 30 seconds for magic to happen (jenkins build)');
-      sleep.sleep(30)
+    var sleep = require('sleep');
+    grunt.log.ok('Waiting 30 seconds for magic to happen (jenkins build)');
+    sleep.sleep(30)
   });
 
-  grunt.registerTask('github:pr', 'create a PR at github', function() {
+  grunt.registerTask('github:pr', 'Open browser to create a PR at github', function() {
     nodeSpawn('../node_modules/pullrequest/index.js');
   });
 
@@ -644,12 +641,12 @@ module.exports = function(grunt) {
               command;
     }
 
-
     switch(resolveCommandAliases(cmd))
     {
       case 'feature':
         var feature = arg ? arg : grunt.fatal('Feature name not given as argument');
         var featureBranch = options.featureBranchPrefix + feature;
+
         grunt.config.merge({
           gitcheckout: {
             feature: {
@@ -659,174 +656,205 @@ module.exports = function(grunt) {
             }
           }
         });
-
         if ( opt == 'start' ) {
-            if (branchExists(featureBranch)) {
-              grunt.fatal('feature name already exists');
-            } 
-            else if (upstreamExists(options.remote, featureBranch)) {
-              grunt.fatal('feature name already on remote');
-            }
-            else {
-              grunt.log.writeln('Starting feature branch : ' + featureBranch);
-              grunt.task.run('gitcheckout:dev');
-              grunt.task.run('gitpull:dev');
-              grunt.config.merge({
-                gitcheckout: {
-                  feature: {
-                    options: {
-                      create: true
-                    }
-                  }
-                }
-              });
-              grunt.task.run('gitcheckout:feature');
-            }
-
-        } else if ( opt == 'squash') {
-            if ( ! branchExists(featureBranch) && ! upstreamExists(options.remote, featureBranch) ) {
-              grunt.fatal('Feature does not exist locally or remotely')
-            } 
-            
-            if (branchExists(featureBranch)) {
-              grunt.task.run('gitcheckout:feature');
-            }
-            if (upstreamExists(options.remote, featureBranch)) {
-              grunt.config.merge({
-                gitpull: {
-                  feature: {
-                    options: {
-                      branch: featureBranch,
-                    }
-                  }
-                }
-              });
-              grunt.task.run('gitpull:feature');
-            }
-
-            // git co feature/x
-            // git co -b backup-feature/x
-            // git co feature/x
-            // baseCommit = git merge-base devBranch feature/x
-            // git reset $baseCommit
-            // git add -A
-            // git commit -m 'squash commit message'
-            
-
-            var diffDev = countCommits(featureBranch, options.remote+'/'+options.devBranch);
-
-            if (parseInt(diffDev.after) == 0) {
-              grunt.fatal(`${featureBranch} has no new commits in relation to ${options.devBranch}: there is no squash.`);
-            }
-
-            var diffRemote = countCommits(featureBranch, `${options.remote}/${featureBranch}`);
-            grunt.log.ok(diffRemote.after);
-            if (parseInt(diffRemote.before) > 0) {
-              grunt.fatal(`There are new commits upstream. You should pull ${featureBranch} from ${options.remote}.`);
-            }
- 
-            var backupBranch = `backup-${featureBranch}`;
-            if ( branchExists(backupBranch) ) {
-              var ans = ask(`Safety backup branch ${backupBranch} already exists. Shall I delete it? [y/N]: `).trim();
-              if (ans.toUpperCase() == 'Y') { deleteBranch(backupBranch) };
-            }
+          if (branchExists(featureBranch)) {
+            grunt.fatal('Feature name already exists');
+          } 
+          else if (upstreamExists(options.remote, featureBranch)) {
+            grunt.fatal('Feature name already on remote');
+          }
+          else {
+            grunt.log.writeln('Starting feature branch : ' + featureBranch);
+            grunt.task.run('gitcheckout:dev');
+            grunt.task.run('gitpull:dev');
             grunt.config.merge({
               gitcheckout: {
-                squash: {
+                feature: {
                   options: {
-                    branch: `backup-${featureBranch}`,
                     create: true
                   }
                 }
               }
             });
-            grunt.task.run('gitcheckout:squash');
             grunt.task.run('gitcheckout:feature');
-            var baseCommit = spawnSync(`git merge-base ${options.devBranch} ${featureBranch}`).stdout.trim();
-            var commitMessage = ask('Please enter your squash commit message: ').trim();
+          }
+        } else if ( opt == 'squash') {
+          //FS
+          if (( ! branchExists(featureBranch) ) && (! upstreamExists(options.remote, featureBranch))) {
+            grunt.fatal('Feature does not exist locally or remotely. Please create it first.');
+          } 
+
+          if (branchExists(featureBranch)) {
+            grunt.task.run('gitcheckout:feature');
+          }
+
+          if (upstreamExists(options.remote, featureBranch)) {
             grunt.config.merge({
-              gitreset: {
-                squash: {
-                  options: {
-                    branch: featureBranch,
-                    commit: baseCommit
-                  }
-                }
-              },
-              gitadd: {
-                squash: {
-                  options: {
-                    all: true
-                  }
-                }
-              },
-              gitcommit: {
-                squash: {
-                  options: {
-                    message: commitMessage 
-                  }
-                }
-              },
-            });
-            grunt.task.run('gitreset:squash');
-            grunt.task.run('gitadd:squash');
-            grunt.task.run('gitcommit:squash');
-        } else if ( opt == 'finish') {
-            grunt.config.merge({
-              gitcheckout: {
-                feature: {
-                  options: {
-                    branch: featureBranch
-                  }
-                }
-              },
-              gitpush: {
+              gitpull: {
                 feature: {
                   options: {
                     branch: featureBranch,
-                    force: true
                   }
                 }
               }
             });
+            grunt.task.run('gitpull:feature');
+          }
 
-            if ( ! branchExists(featureBranch) && ! upstreamExists(options.remote, featureBranch) ) {
-              grunt.fatal('Feature does not exist locally or at remote. Please start it first');
-            } 
-            
-            if (branchExists(featureBranch)) {
-              grunt.task.run('gitcheckout:feature');
-            }
-            
-            if (! upstreamExists(options.remote, featureBranch)) {
-              grunt.task.run('gitpush:feature');
-            }
+          var diffDev = countCommits(featureBranch, `${options.remote}/${options.devBranch}`);
 
-            // check commit state
-            // local vs remote branch
-            var diffRemote = countCommits(featureBranch, options.remote+'/'+featureBranch);
+          if (parseInt(diffDev.after) == 0) {
+            grunt.fatal(`${featureBranch} has no new commits in relation to ${options.devBranch}: there is no squash.`);
+          }
 
-            if (parseInt(diffRemote.before) > 0) {
-              grunt.fatal('pull changes from remote');
+          var diffRemote = countCommits(featureBranch, `${options.remote}/${featureBranch}`);
+          if (parseInt(diffRemote.before) > 0) {
+            grunt.fatal(`There are new commits upstream. You should pull ${featureBranch} from ${options.remote}.`);
+          }
+ 
+          var backupBranch = `backup-${featureBranch}`;
+          if ( branchExists(backupBranch) ) {
+            var ans = ask(`Safety backup branch ${backupBranch} already exists. Shall I delete it? [y/N]: `).trim();
+            if (ans.toUpperCase() == 'Y') { 
+              deleteBranch(backupBranch);
             }
+            else {
+              grunt.fatal('I will let you delete it then. Better safe than sorry.');
+            }
+          }
+          grunt.config.merge({
+            gitcheckout: {
+              squash: {
+                options: {
+                  branch: `backup-${featureBranch}`,
+                  create: true
+                }
+              }
+            }
+          });
+          grunt.task.run('gitcheckout:squash');
+          grunt.task.run('gitcheckout:feature');
+          var baseCommit = spawnSync(`git merge-base ${options.devBranch} ${featureBranch}`).stdout.trim();
+          var commitMessage = ask('Please enter your squash commit message: ').trim();
+          grunt.config.merge({
+            gitreset: {
+              squash: {
+                options: {
+                  branch: featureBranch,
+                  commit: baseCommit
+                }
+              }
+            },
+            gitadd: {
+              squash: {
+                options: {
+                  all: true
+                }
+              }
+            },
+            gitcommit: {
+              squash: {
+                options: {
+                  message: commitMessage 
+                }
+              }
+            },
+          });
+          grunt.task.run('gitreset:squash');
+          grunt.task.run('gitadd:squash');
+          grunt.task.run('gitcommit:squash');
+        } else if ( opt == 'finish') {
+          // FF
+          grunt.config.merge({
+            gitcheckout: {
+              feature: {
+                options: {
+                  branch: featureBranch
+                }
+              }
+            },
+            gitpush: {
+              feature: {
+                options: {
+                  branch: featureBranch,
+                  force: true
+                }
+              }
+            },
+            gitpull: {
+              feature: {
+                options: {
+                  branch: featureBranch,
+                }
+              }
+            }
+          });
 
-            if (parseInt(diffRemote.after) > 0) {
-              grunt.fatal('push changes to remote');
-            }
-            
-            // check commit state
-            // local branch and remote dev branch
-            var diffDev = countCommits(featureBranch, options.remote+'/'+options.devBranch);
+          if (upstreamExists(options.remote, featureBranch) && ! branchExists(featureBranch)) {
+            grunt.fatal('Please ensure feature is a local branch.');
+          }
 
-            if (parseInt(diffDev.after) == 0) {
-              grunt.fatal(`${featureBranch} has no new commits in relation to ${options.devBranch}: there is no need to merge.`);
-            }
-            if (parseInt(diffDev.before) > 0) {
-              grunt.log.warning(`You should merge ${options.devBranch} in ${featureBranch} prior to feature finish.`);
-            }
 
-            grunt.task.run('github:pr');
+          if (branchExists(featureBranch)) {
+            if (upstreamExists(options.remote, featureBranch)) {
+              // there is an upstream
+              // check feature vs remote
+              var diffRemote = countCommits(featureBranch, `${options.remote}/${featureBranch}`);
+
+              if (parseInt(diffRemote.before) == 0 && parseInt(diffRemote.after) == 0) {
+                grunt.log.ok('Branches are even.');
+              }
+              else if (parseInt(diffRemote.before) > 0 && parseInt(diffRemote.after) > 0) {
+                grunt.fatal('Please manually reconcile branches before you proceed.');
+              }
+              else if (parseInt(diffRemote.after) > 0 && parseInt(diffRemote.before) == 0 )
+              {
+                grunt.log.ok('Pushing feature to remote.');
+                grunt.task.run('gitpush:feature');
+              }
+              else if (parseInt(diffRemote.before) > 0 && parseInt(diffRemote.after) == 0 )
+              {
+                grunt.log.ok('Pulling features from remote');
+                grunt.task.run('gitpull:feature');
+              }
+              else {
+                grunt.fatal('Unknown error comparing local branch to remote branch.');
+              }
+            }
+            else {
+              // there is no upstream
+              // check local vs devRemote: is it worth pushing?
+              var diffDev = countCommits(featureBranch, `${options.remote}/${options.devBranch}`);
+
+              if (parseInt(diffDev.after) > 0 && parseInt(diffDev.before) == 0) { 
+                grunt.log.ok('Pushing feature branch upstream as it contains commits not in master');
+                grunt.task.run('gitpush:feature');
+              }
+              else if (parseInt(diffDev.before) > 0) {
+                // master has changes that should be merged
+                grunt.fatal(`You should merge ${options.devBranch} in ${featureBranch} prior to feature finish.`);
+              } 
+              else if (parseInt(diffDev.after) == 0) {
+                grunt.fatal(`${featureBranch} has no new commits in relation to ${options.devBranch}: there is no need to release upstream.`);
+              } 
+              else {
+                grunt.fatal('Unknown error comparing local branch to devBranch.');
+              }
+            }
+            grunt.task.run('gitcheckout:feature');
+          } else {
+            if (upstreamExists(options.remote, featureBranch)) {
+              grunt.fatal('Please advise');
+            }
+            else {
+              grunt.fatal('Feature does not exist locally or remotely. Please create it first.');
+            }
+          }
+
+          grunt.log.ok('Starting PR');
+          grunt.task.run('github:pr');
         } else {
+          //do nothing yet
         }
         break
       case 'pull-request':
