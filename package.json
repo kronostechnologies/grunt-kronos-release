@@ -32,6 +32,6 @@
     "load-grunt-tasks": "^0.4.0",
     "readline-sync": "^1.3.0",
     "sync-exec": "^0.5.0",
-    "sleep": "git+https://github.com/kronos-pbrideau/node-sleep.git"
+    "sleep": "git+https://github.com/erikdubbelboer/node-sleep.git"
   }
 }
