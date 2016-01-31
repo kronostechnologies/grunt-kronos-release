@@ -624,20 +624,19 @@ module.exports = function(grunt) {
   var DESC = 'DevOps Versioning';
   grunt.registerTask('do', DESC, function(cmd, opt, arg){
 
-		var DO_OPTIONS = {
-			devBranch: 'master',
-      stableBranch: 'stable',
-			featureBranchPrefix: 'feature/',
-			versionFile: 'package.json',
-			remote: 'origin'
-		};
+    var DO_OPTIONS = {
+      devBranch: 'master',
+      featureBranchPrefix: 'feature/',
+      versionFile: 'package.json',
+      remote: 'origin'
+    };
 
     var options = this.options(DO_OPTIONS);
 
-    var lastTag = execSync('git fetch -q ' + options.remote + ' ' + options.stableBranch + ' && git describe --tags --abbrev=0 ' + options.remote + '/' + options.stableBranch).trim();
-		console.log(lastTag);
+    var lastTag = execSync('git fetch -q ' + options.remote + ' ' + options.devBranch + ' && git describe --tags --abbrev=0 ' + options.remote + '/' + options.devBranch ).trim();
+    console.log(lastTag);
 
-  	grunt.config.merge({
+    grunt.config.merge({
       gitpull: {
         dev: {
           options: {
@@ -674,7 +673,7 @@ module.exports = function(grunt) {
           createTag: false
         }
       },
-      changelog: {
+      conventionalChangelog: {
         options: {
           from: lastTag
         }
@@ -960,7 +959,7 @@ module.exports = function(grunt) {
             grunt.task.run('gitcheckout:dev');
             grunt.task.run('gitpull:dev');
             grunt.task.run('bump-only:patch');
-            grunt.task.run('changelog');
+            grunt.task.run('conventionalChangelog');
             grunt.task.run('bump-commit');
             grunt.task.run('do:release:tag');
             grunt.task.run('gitpush:dev');
