@@ -7,23 +7,104 @@
  * grunt release:finish
  * grunt hotfix:start:branch-name
  * grunt hotfix:fihish:branch-name
+ * grunt feature:start
+ * grunt feature:finish
  *
  */
 
 'use strict';
-var exec = require('sync-exec');
-var sleep = require('sleep');
 
-var execSync = function(cmd) {
+var oldExecSync = function(cmd) {
+  var exec = require('sync-exec');
   var result = exec(cmd);
   return result.stdout;
+}
+
+var spawnSync= function(cmd) {
+  var args = cmd.split(' ');
+  var program = args.shift();
+  var child  = require('child_process').spawnSync(program, args);
+  var stdout = (child.stdout) ? child.stdout.toString(): '';
+  var stderr = (child.stderr) ? child.stderr.toString(): '';
+  return {
+    code: child.status,
+    stdout: stdout,
+    stderr: stderr,
+  }
+}
+
+Array.prototype.contains = function(obj) {
+      return this.indexOf(obj) > -1;
+};
+String.prototype.in = function(obj) {
+  return obj.contains(this);
+}
+
+var nodeSpawn = function(jsFile) {
+  var spawn = require('child_process').spawn;
+  var path = require('path');
+  var cmd = path.join(__dirname, jsFile);
+  spawn('node', [cmd], {
+    detached: true
+  });
+}
+
+// git custom functions
+var branchExists = function (branch)  {
+  return ! Boolean(spawnSync('git show-ref --verify --quiet refs/heads/' + branch).code);
+}
+
+var upstreamExists = function (remote, upstream) {
+  return ! Boolean(spawnSync('git ls-remote --exit-code ' + remote + ' ' + upstream).code);
+}
+
+var getLatestTag = function (remote, branch) {
+  var tag = spawnSync('git fetch -q ' + remote + ' ' + branch  + ' && git describe --tags --abbrev=0 ' + remote + '/' + branch).stdout.trim();
+  return tag;
+
+}
+var deleteBranch = function (branch)  {
+  spawnSync(`git branch -D ${branch}`);
+}
+
+var getMergeBaseCommit = function (devBranch, featBranch) {
+  return 
+}
+
+var countCommits = function (refA, refB) {
+  // Count number of commits ahead of release branch
+  spawnSync(`git fetch`);
+  var diff = spawnSync(`git rev-list --count --left-right ${refA}...${refB}`);
+  var aDiff = diff.stdout.split('\t');
+  var after = aDiff[0].trim();
+  var before = aDiff[1].trim();
+  console.log(`${refA} is ${after} commit(s) after ${refB}`);
+  console.log(`${refA} is ${before} commit(s) before ${refB}`);
+  return {
+    after: after,
+    before: before
+  };
+}
+
+var getVersion = function(grunt, versionFile) {
+  var VERSION_REGEXP = /([\'|\"]?version[\'|\"]?[ ]*:[ ]*[\'|\"]?)([\d||A-a|.|-]*)([\'|\"]?)/i;
+  var version = null;
+  grunt.file.read(versionFile).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, suffix) {
+    version = parsedVersion
+  });
+
+  if (!version) {
+    grunt.fatal('Could not find version in ' + options.versionFile);
+  }
+  return version
+
 }
 
 
 module.exports = function(grunt) {
 
   var DEFAULT_OPTIONS = {
-    devBranch: 'master',
+    devBranch: 'refactor/puppet',
     releaseBranch: 'release/main',
     stableBranch: 'stable/main',
     upstreamBranch: 'upstream',
@@ -35,7 +116,9 @@ module.exports = function(grunt) {
   
   var configureGitTasks = function(options){
 
-    var lastStableTag = execSync('git fetch -q ' + options.remote + ' ' + options.stableBranch + ' && git describe --tags --abbrev=0 ' + options.remote + '/' + options.stableBranch).trim();
+    //var lastStableTag = oldExecSync('git fetch -q ' + options.remote + ' ' + options.stableBranch + ' && git describe --tags --abbrev=0 ' + options.remote + '/' + options.stableBranch).trim();
+
+    var lastStableTag = getLatestTag(options.remote, options.stableBranch);
 
     grunt.config.merge({
       gitpull: {
@@ -209,7 +292,7 @@ module.exports = function(grunt) {
         grunt.fatal('Can not find a version in ' + options.versionFile);
       }
 
-      execSync('git tag -a v' + version  + ' -m "Version ' + version + '"');
+      oldExecSync('git tag -a v' + version  + ' -m "Version ' + version + '"');
       
       grunt.log.ok('Tagged version : ' + version);
     }
@@ -218,12 +301,12 @@ module.exports = function(grunt) {
       // Count number of dev commits ahead of release branch
       var rev = "origin/" + options.releaseBranch + "...origin/" + options.devBranch;
       var grep_pattern = '\'^(?!Merge branch \'"\'"\'' + options.releaseBranch  + '\'"\'"\').+$\'';
-      var matches = execSync("git rev-list --count --left-right " + rev + ' --grep ' + grep_pattern + ' --perl-regexp').match(/\d+\t(\d+)/);
+      var matches = oldExecSync("git rev-list --count --left-right " + rev + ' --grep ' + grep_pattern + ' --perl-regexp').match(/\d+\t(\d+)/);
       var releaseAhead = (matches && matches[1] > 0);
       
       // Count number of release commits ahead of stable branch
       var rev = "origin/" + options.stableBranch + "...origin/" + options.releaseBranch;
-      var matches = execSync("git rev-list --count --left-right " + rev).match(/\d+\t(\d+)/);
+      var matches = oldExecSync("git rev-list --count --left-right " + rev).match(/\d+\t(\d+)/);
       var stableAhead = (matches && matches[1] > 0);
 
       if(!releaseAhead && !stableAhead) {
@@ -286,7 +369,6 @@ module.exports = function(grunt) {
       var hotfixBranch = options.hotfixBranchPrefix + hotfixName;
       grunt.log.writeln('Release hotfix branch : ' + hotfixBranch);
       
-      var upstreamExists = (execSync('git ls-remote ' + options.remote + ' ' + hotfixBranch).trim() != "");
       
       grunt.config.merge({
         gitpull: {
@@ -320,7 +402,7 @@ module.exports = function(grunt) {
       });
 
       grunt.task.run('gitcheckout:hotfix');
-      if(upstreamExists) {
+      if(upstreamExists(options.remote, hotfixBranch)) {
         grunt.task.run('gitpull:hotfix');
       }
       grunt.task.run('gitcheckout:stable');
@@ -343,14 +425,14 @@ module.exports = function(grunt) {
 
   });
   
-  var DESC = 'Prepare a feature';
-  grunt.registerTask('feature', DESC, function(featureCmd, featureName) {
+  grunt.registerTask('f', 'alias to feature', 'feature')
+  grunt.registerTask('feat', 'alias to feature', 'feature')
+  grunt.registerTask('feature', 'Prepare a feature', function(featureCmd, featureName) {
     
     var options = this.options(DEFAULT_OPTIONS);
     configureGitTasks(options);
 
     if (featureCmd == 'start') {
-
       
       if (typeof featureName == 'undefined'){
         grunt.fatal('feature name is required. (ex: grunt feature:start:feature-name)');
@@ -388,8 +470,6 @@ module.exports = function(grunt) {
       grunt.log.writeln('Release feature branch : ' + featureBranch);
 
 
-      var upstreamExists = (execSync('git ls-remote ' + options.remote + ' ' + featureBranch).trim() != "");
-
       grunt.config.merge({
         gitpull: {
           feature: {
@@ -423,25 +503,21 @@ module.exports = function(grunt) {
       });
 
       grunt.task.run('gitcheckout:feature');
-      if(upstreamExists) {
+      if(upstreamExists(options.remote, featureBranch)) {
         grunt.task.run('gitpull:feature');
       }
       grunt.task.run('gitcheckout:dev');
       grunt.task.run('gitpull:dev');
       grunt.task.run('gitmerge:feature');
-
-      //TODO: Delete feature branch.
-    
-
     }
     else {
-      grunt.fatal('Invalid hotfix command "' + hotfixCmd + '". Should be start|finish.');
+      grunt.fatal('Invalid feature command "' + featureCmd + '". Should be start|finish.');
     }
 
   });
   
   var DESC = 'Repackage upstream';
-  grunt.registerTask('upstream', DESC, function(repackCmd, upstreamVersion) {
+  grunt.registerTask('upstream', DESC, function(cmd, upstreamVersion) {
       
     var options = this.options(DEFAULT_OPTIONS);
     configureGitTasks(options);
@@ -470,13 +546,13 @@ module.exports = function(grunt) {
         }
       });
       
-    if(repackCmd == 'merge'){
+    if(cmd == 'merge'){
       grunt.task.run('gitcheckout:dev');
       grunt.task.run('gitpull:dev');
       grunt.task.run('gitmerge:upstream');
       grunt.log.ok('please review upstream merge and commit to devBranch');
     } 
-    else if (repackCmd == 'pack') {
+    else if (cmd == 'pack') {
         
       if (typeof upstreamVersion == 'undefined') {
         grunt.fatal('upstream version to repack is required. (ex: grunt upstream:pack:2.1.4)');
@@ -493,18 +569,18 @@ module.exports = function(grunt) {
       grunt.log.ok('Releasing master changes, changing version "' + version + '" to version "' + newVersion + '"' );
         
       grunt.task.run('gitcheckout:dev');
-      execSync('grunt bump:pre --setversion=' + newVersion );
+      oldExecSync('grunt bump:pre --setversion=' + newVersion );
       grunt.task.run('gitpush:dev');
       grunt.task.run('upstream:release');
     }
-    else if (repackCmd == 'repack'){
+    else if (cmd == 'repack'){
       grunt.task.run('gitcheckout:dev');
       grunt.task.run('gitpull:dev');
       grunt.task.run('bump:pre')
       grunt.task.run('gitpush:dev');
       grunt.task.run('upstream:release');
     }
-    else if (repackCmd == 'release'){
+    else if (cmd == 'release'){
       grunt.task.run('gitcheckout:release');
       grunt.task.run('gitpull:release');
       grunt.task.run('gitmerge:dev');
@@ -513,38 +589,311 @@ module.exports = function(grunt) {
       grunt.task.run('gitcheckout:dev');
 
     }
-    else if (repackCmd == 'stable'){
+    else if (cmd == 'stable'){
       grunt.task.run('gitcheckout:stable');
       grunt.task.run('gitpull:stable');
       grunt.task.run('gitmerge:release');
       grunt.task.run('gitpush:stable');
       grunt.task.run('gitcheckout:dev');
     }
-    else if(repackCmd == 'tag'){
-      
-      var version = null;
-      grunt.file.read(options.versionFile).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, suffix) {
-        // Version should be increment here also because bump task did not run yet.
-        version = parsedVersion
+    else if(cmd == 'tag'){
+      var version = getVersion(grunt, options.versionFile);
+      grunt.config.merge({
+        gittag: {
+          upstream: {
+            options: {
+              tag: 'v' + version
+            }
+          }
+        }
       });
-
-      if (!version) {
-        grunt.fatal('Can not find a version in ' + options.versionFile);
-      }
-
-      execSync('git tag -a v' + version  + ' -m "Version ' + version + '"');
-      
+      grunt.task.run('gittag:upstream')
       grunt.log.ok('Tagged version : ' + version);
     }
     else {
-      grunt.fatal('Invalid release command "' + repackCmd + '". Should be merge|pack|repack|release|stable.');
+      grunt.fatal('Invalid release command "' + cmd + '". Should be merge|pack|repack|release|stable.');
     }
   });
 
   grunt.registerTask('sleep', 'Wait for push triggers', function(arg1, arg2) {
+      var sleep = require('sleep');
       grunt.log.ok('Waiting 30 seconds for magic to happen (jenkins build)');
       sleep.sleep(30)
   });
+
+  grunt.registerTask('github:pr', 'create a PR at github', function() {
+    nodeSpawn('../node_modules/pullrequest/index.js');
+  });
+
+  var ask = function (question) {
+    var readlineSync = require('readline-sync');
+    var answer = readlineSync.question(question);
+    return answer;
+  }
+
+  var DESC = 'DevOps Versioning';
+  grunt.registerTask('do', DESC, function(cmd, opt, arg){
+
+    var options = this.options(DEFAULT_OPTIONS);
+    configureGitTasks(options);
+
+    var resolveCommandAliases = function (command){
+       return command.in([ 'feat', 'f' ])   ? "feature": 
+              command.in([ 'rel', 'r' ])    ? "release": 
+              command.in([ 'pr' ])          ? "pull-request": 
+              command;
+    }
+
+
+    switch(resolveCommandAliases(cmd))
+    {
+      case 'feature':
+        var feature = arg ? arg : grunt.fatal('Feature name not given as argument');
+        var featureBranch = options.featureBranchPrefix + feature;
+        grunt.config.merge({
+          gitcheckout: {
+            feature: {
+              options: {
+                branch: featureBranch,
+              }
+            }
+          }
+        });
+
+        if ( opt == 'start' ) {
+            if (branchExists(featureBranch)) {
+              grunt.fatal('feature name already exists');
+            } 
+            else if (upstreamExists(options.remote, featureBranch)) {
+              grunt.fatal('feature name already on remote');
+            }
+            else {
+              grunt.log.writeln('Starting feature branch : ' + featureBranch);
+              grunt.task.run('gitcheckout:dev');
+              grunt.task.run('gitpull:dev');
+              grunt.config.merge({
+                gitcheckout: {
+                  feature: {
+                    options: {
+                      create: true
+                    }
+                  }
+                }
+              });
+              grunt.task.run('gitcheckout:feature');
+            }
+
+        } else if ( opt == 'squash') {
+            if ( ! branchExists(featureBranch) && ! upstreamExists(options.remote, featureBranch) ) {
+              grunt.fatal('Feature does not exist locally or remotely')
+            } 
+            
+            if (branchExists(featureBranch)) {
+              grunt.task.run('gitcheckout:feature');
+            }
+            if (upstreamExists(options.remote, featureBranch)) {
+              grunt.config.merge({
+                gitpull: {
+                  feature: {
+                    options: {
+                      branch: featureBranch,
+                    }
+                  }
+                }
+              });
+              grunt.task.run('gitpull:feature');
+            }
+
+            // git co feature/x
+            // git co -b backup-feature/x
+            // git co feature/x
+            // baseCommit = git merge-base devBranch feature/x
+            // git reset $baseCommit
+            // git add -A
+            // git commit -m 'squash commit message'
+            
+
+            var diffDev = countCommits(featureBranch, options.remote+'/'+options.devBranch);
+
+            if (parseInt(diffDev.after) == 0) {
+              grunt.fatal(`${featureBranch} has no new commits in relation to ${options.devBranch}: there is no squash.`);
+            }
+
+            var diffRemote = countCommits(featureBranch, `${options.remote}/${featureBranch}`);
+            grunt.log.ok(diffRemote.after);
+            if (parseInt(diffRemote.before) > 0) {
+              grunt.fatal(`There are new commits upstream. You should pull ${featureBranch} from ${options.remote}.`);
+            }
+ 
+            var backupBranch = `backup-${featureBranch}`;
+            if ( branchExists(backupBranch) ) {
+              var ans = ask(`Safety backup branch ${backupBranch} already exists. Shall I delete it? [y/N]: `).trim();
+              if (ans.toUpperCase() == 'Y') { deleteBranch(backupBranch) };
+            }
+            grunt.config.merge({
+              gitcheckout: {
+                squash: {
+                  options: {
+                    branch: `backup-${featureBranch}`,
+                    create: true
+                  }
+                }
+              }
+            });
+            grunt.task.run('gitcheckout:squash');
+            grunt.task.run('gitcheckout:feature');
+            var baseCommit = spawnSync(`git merge-base ${options.devBranch} ${featureBranch}`).stdout.trim();
+            var commitMessage = ask('Please enter your squash commit message: ').trim();
+            grunt.config.merge({
+              gitreset: {
+                squash: {
+                  options: {
+                    branch: featureBranch,
+                    commit: baseCommit
+                  }
+                }
+              },
+              gitadd: {
+                squash: {
+                  options: {
+                    all: true
+                  }
+                }
+              },
+              gitcommit: {
+                squash: {
+                  options: {
+                    message: commitMessage 
+                  }
+                }
+              },
+            });
+            grunt.task.run('gitreset:squash');
+            grunt.task.run('gitadd:squash');
+            grunt.task.run('gitcommit:squash');
+        } else if ( opt == 'finish') {
+            grunt.config.merge({
+              gitcheckout: {
+                feature: {
+                  options: {
+                    branch: featureBranch
+                  }
+                }
+              },
+              gitpush: {
+                feature: {
+                  options: {
+                    branch: featureBranch,
+                    force: true
+                  }
+                }
+              }
+            });
+
+            if ( ! branchExists(featureBranch) && ! upstreamExists(options.remote, featureBranch) ) {
+              grunt.fatal('Feature does not exist locally or at remote. Please start it first');
+            } 
+            
+            if (branchExists(featureBranch)) {
+              grunt.task.run('gitcheckout:feature');
+            }
+            
+            if (! upstreamExists(options.remote, featureBranch)) {
+              grunt.task.run('gitpush:feature');
+            }
+
+            // check commit state
+            // local vs remote branch
+            var diffRemote = countCommits(featureBranch, options.remote+'/'+featureBranch);
+
+            if (parseInt(diffRemote.before) > 0) {
+              grunt.fatal('pull changes from remote');
+            }
+
+            if (parseInt(diffRemote.after) > 0) {
+              grunt.fatal('push changes to remote');
+            }
+            
+            // check commit state
+            // local branch and remote dev branch
+            var diffDev = countCommits(featureBranch, options.remote+'/'+options.devBranch);
+
+            if (parseInt(diffDev.after) == 0) {
+              grunt.fatal(`${featureBranch} has no new commits in relation to ${options.devBranch}: there is no need to merge.`);
+            }
+            if (parseInt(diffDev.before) > 0) {
+              grunt.log.warning(`You should merge ${options.devBranch} in ${featureBranch} prior to feature finish.`);
+            }
+
+            grunt.task.run('github:pr');
+        } else {
+        }
+        break
+      case 'pull-request':
+        grunt.log.ok('PR')
+        break;
+      case 'release':
+        grunt.log.ok('release');
+        break;
+    }
+  
+    var resolveActionAliases = function (action){
+      return action.in([ 'feat', 'f' ])   ? "feature": 
+             action.in([ 'rel', 'r' ])    ? "release": 
+             action.in([ 'pr' ])          ? "pull-request": 
+             action;
+    }
+
+    /*
+     * grunt do:feature:start
+     * grunt do:feature:finish
+     * grunt do:start
+     * grunt do:continue
+     * grunt do:finish
+     */
+    if ( cmd == 'feature' ) {
+    }
+    else if ( cmd == 'pr' ) {
+      //validate branch status
+      grunt.task.run('github:pr');
+    }
+    else if ((cmd == 'start' || cmd == 'go') && (opt == 'minor' || opt == 'major')) {
+      grunt.task.run('gitcheckout:dev');
+      grunt.task.run('gitpull:dev');
+      grunt.task.run('bump:pre' + opt);
+      grunt.task.run('gitpush:dev');
+    }
+    else if(cmd == 'continue' || cmd == 'up') {
+      grunt.task.run('gitcheckout:dev');
+      grunt.task.run('gitpull:dev');
+      grunt.task.run('bump:prerelease');
+      grunt.task.run('gitpush:dev');
+    }
+    else if(cmd == 'finish' || cmd == 'ne'){
+      grunt.task.run('gitcheckout:dev');
+      grunt.task.run('gitpull:dev');
+      grunt.task.run('bump-only:patch');
+      grunt.task.run('changelog');
+      grunt.task.run('bump-commit');
+      grunt.task.run('do:tag');
+    }
+    else if(cmd == 'tag' || cmd == 't'){
+      var version = getVersion(grunt, options.versionFile);
+      grunt.config.merge({
+        gittag: {
+          dev: {
+            options: {
+              tag: 'v' + version
+            }
+          }
+        }
+      });
+      grunt.task.run('gittag:dev')
+      grunt.log.ok('Tagged version : ' + version);
+    }
+    else {
+      grunt.fatal('Invalid DO command "' + cmd + '". Should be start:minor | start:major | continue | finish');
+    }
+  });
 };
 
-// vim: set ts=2 sw=2 sts=2 et :
