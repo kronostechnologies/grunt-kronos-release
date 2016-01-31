@@ -28,6 +28,7 @@
     "grunt-bump": "0.0.15",
     "grunt-git": "^0.3.7",
     "grunt-release": "^0.7.0",
+    "grunt-conventional-changelog": "git+https://github.com/kronostechnologies/grunt-conventional-changelog.git#717b6dfa5298ca8bf7f1782ddf8ae36b18c27267",
     "load-grunt-tasks": "^0.4.0",
     "pullrequest": "^0.3.1",
     "readline-sync": "^1.3.0",
