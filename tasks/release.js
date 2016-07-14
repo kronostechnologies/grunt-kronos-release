@@ -12,7 +12,6 @@
 
 'use strict';
 var exec = require('sync-exec');
-var sleep = require('sleep');
 
 var execSync = function(cmd) {
   var result = exec(cmd);
@@ -162,6 +161,7 @@ module.exports = function(grunt) {
       grunt.task.run('gitpush:release');
     }
     else if(releaseCmd == 'continue'){
+      grunt.log.writeln('release:continue task no longer required with circleci.');
       grunt.task.run('gitcheckout:release');
       grunt.task.run('bump:prerelease');
       grunt.task.run('gitpush:release');
@@ -173,29 +173,29 @@ module.exports = function(grunt) {
       grunt.task.run('gitcheckout:stable');
       grunt.task.run('gitpull:stable');
       grunt.task.run('gitmerge:release');
-
-      // Remove the prerelease
       grunt.task.run('bump-only:patch');
       grunt.task.run('conventionalChangelog');
       grunt.task.run('bump-commit');
-      grunt.task.run('gitpush:stable');
-      grunt.task.run('sleep');
       grunt.task.run('release:tag');
-      //grunt.task.run('gitcheckout:release');
-      //grunt.task.run('gitmerge:stable');
-      //grunt.task.run('gitpush:release');
-      //grunt.task.run('gitcheckout:dev');
-      //grunt.task.run('gitmerge:release');
-      //grunt.task.run('gitpush:dev');
-    }
-    else if(releaseCmd == 'finish-merge'){
+      grunt.task.run('gitpush:stable');
       grunt.task.run('gitcheckout:release');
+      grunt.task.run('gitpull:release');
       grunt.task.run('gitmerge:stable');
       grunt.task.run('gitpush:release');
       grunt.task.run('gitcheckout:dev');
+      grunt.task.run('gitpull:dev');
       grunt.task.run('gitmerge:release');
       grunt.task.run('gitpush:dev');
-
+    }
+    else if(releaseCmd == 'finish-merge'){
+      grunt.task.run('gitcheckout:release');
+      grunt.task.run('gitpull:release');
+      grunt.task.run('gitmerge:stable');
+      grunt.task.run('gitpush:release');
+      grunt.task.run('gitcheckout:dev');
+      grunt.task.run('gitpull:dev');
+      grunt.task.run('gitmerge:release');
+      grunt.task.run('gitpush:dev');
     }
     else if(releaseCmd == 'tag'){
       
@@ -541,10 +541,6 @@ module.exports = function(grunt) {
     }
   });
 
-  grunt.registerTask('sleep', 'Wait for push triggers', function(arg1, arg2) {
-      grunt.log.ok('Waiting 30 seconds for magic to happen (jenkins build)');
-      sleep.sleep(30);
-  });
 };
 
 // vim: set ts=2 sw=2 sts=2 et :
