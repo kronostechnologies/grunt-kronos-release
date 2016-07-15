@@ -161,7 +161,6 @@ module.exports = function(grunt) {
       grunt.task.run('gitpush:release');
     }
     else if(releaseCmd == 'continue'){
-      grunt.log.writeln('release:continue task no longer required with circleci.');
       grunt.task.run('gitcheckout:release');
       grunt.task.run('bump:prerelease');
       grunt.task.run('gitpush:release');
