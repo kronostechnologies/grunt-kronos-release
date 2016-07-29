@@ -35,9 +35,9 @@ module.exports = function(grunt) {
   var configureGitTasks = function(options){
 
     var lastStableTag = execSync('git fetch -q ' + options.remote + ' ' + options.stableBranch + ' && git describe --tags --abbrev=0 ' + options.remote + '/' + options.stableBranch).trim();
-    var devMergeMessage = 'Merge branch \'' + options.devBranch + '\' [ci skip]';
-    var releaseMergeMessage = 'Merge branch \'' + options.releaseBranch + '\ [ci skip]'';
-    var stableMergeMessage = 'Merge branch \'' + options.stableBranch + '\' [ci skip]';
+    var devMergeCiSkipMessage = 'Merge branch \'' + options.devBranch + '\'\n\n[ci skip]';
+    var releaseMergeCiSkipMessage = 'Merge branch \'' + options.releaseBranch + '\'\n\n[ci skip]';
+    var stableMergeCiSkipMessage = 'Merge branch \'' + options.stableBranch + '\'\n\n[ci skip]';
 
     grunt.config.merge({
       gitpull: {
@@ -81,22 +81,40 @@ module.exports = function(grunt) {
         dev: {
           options: {
             branch : options.devBranch,
+            noff: true
+          }
+        },
+        devCiSkip: {
+          options: {
+            branch : options.devBranch,
             noff: true,
-            message: devMergeMessage
+            message: devMergeCiSkipMessage
           }
         },
         release: {
           options: {
             branch : options.releaseBranch,
+            noff: true
+          }
+        },
+        releaseCiSkip: {
+          options: {
+            branch : options.releaseBranch,
             noff: true,
-            message: releaseMergeMessage
+            message: releaseMergeCiSkipMessage
           }
         },
         stable: {
           options: {
             branch : options.stableBranch,
+            noff: true
+          }
+        },
+        stableCiSkip: {
+          options: {
+            branch : options.stableBranch,
             noff: true,
-            message: stableMergeMessage
+            message: stableMergeCiSkipMessage
           }
         }
       },
@@ -173,11 +191,22 @@ module.exports = function(grunt) {
 
     }
     else if(releaseCmd == 'finish'){
+
+      // Skip useless ci build
+      grunt.config.merge({
+        bump: {
+          options: {
+            commitMessage: 'Release v%VERSION%\n\n[ci skip]'
+          }
+        }
+      });
+
+
       grunt.task.run('gitcheckout:release');
       grunt.task.run('gitpull:release');
       grunt.task.run('gitcheckout:stable');
       grunt.task.run('gitpull:stable');
-      grunt.task.run('gitmerge:release');
+      grunt.task.run('gitmerge:releaseCiSkip');
       grunt.task.run('bump-only:patch');
       grunt.task.run('conventionalChangelog');
       grunt.task.run('bump-commit');
@@ -185,21 +214,21 @@ module.exports = function(grunt) {
       grunt.task.run('gitpush:stable');
       grunt.task.run('gitcheckout:release');
       grunt.task.run('gitpull:release');
-      grunt.task.run('gitmerge:stable');
+      grunt.task.run('gitmerge:stableCiSkip');
       grunt.task.run('gitpush:release');
       grunt.task.run('gitcheckout:dev');
       grunt.task.run('gitpull:dev');
-      grunt.task.run('gitmerge:release');
+      grunt.task.run('gitmerge:releaseCiSkip');
       grunt.task.run('gitpush:dev');
     }
     else if(releaseCmd == 'finish-merge'){
       grunt.task.run('gitcheckout:release');
       grunt.task.run('gitpull:release');
-      grunt.task.run('gitmerge:stable');
+      grunt.task.run('gitmerge:stableCiSkip');
       grunt.task.run('gitpush:release');
       grunt.task.run('gitcheckout:dev');
       grunt.task.run('gitpull:dev');
-      grunt.task.run('gitmerge:release');
+      grunt.task.run('gitmerge:releaseCiSkip');
       grunt.task.run('gitpush:dev');
     }
     else if(releaseCmd == 'tag'){
@@ -291,8 +320,9 @@ module.exports = function(grunt) {
       hotfixBranch = options.hotfixBranchPrefix + hotfixName;
       grunt.log.writeln('Release hotfix branch : ' + hotfixBranch);
       
-      var upstreamExists = (execSync('git ls-remote ' + options.remote + ' ' + hotfixBranch).trim() !== "");
-      
+      var upstreamExists = (execSync('git ls-remote ' + options.remote + ' ' + hotfixBranch).trim() !== "");      
+      var hotfixMergeCiSkipMessage = 'Merge branch \'' + hotfixBranch + '\'\n\n[ci skip]';
+
       grunt.config.merge({
         gitpull: {
           hotfix: {
@@ -313,13 +343,15 @@ module.exports = function(grunt) {
           hotfix: {
             options: {
               branch: hotfixBranch,
-              noff: true
+              noff: true,
+              message: hotfixMergeCiSkipMessage
             }
           }
         },
         bump: {
           options: {
-            push: false
+            push: false,
+            commitMessage: 'Release v%VERSION%\n\n[ci skip]'
           }
         }
       });
