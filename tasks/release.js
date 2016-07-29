@@ -35,6 +35,9 @@ module.exports = function(grunt) {
   var configureGitTasks = function(options){
 
     var lastStableTag = execSync('git fetch -q ' + options.remote + ' ' + options.stableBranch + ' && git describe --tags --abbrev=0 ' + options.remote + '/' + options.stableBranch).trim();
+    var devMergeMessage = 'Merge branch \'' + options.devBranch + '\' [ci skip]';
+    var releaseMergeMessage = 'Merge branch \'' + options.releaseBranch + '\ [ci skip]'';
+    var stableMergeMessage = 'Merge branch \'' + options.stableBranch + '\' [ci skip]';
 
     grunt.config.merge({
       gitpull: {
@@ -78,19 +81,22 @@ module.exports = function(grunt) {
         dev: {
           options: {
             branch : options.devBranch,
-            noff: true
+            noff: true,
+            message: devMergeMessage
           }
         },
         release: {
           options: {
             branch : options.releaseBranch,
-            noff: true
+            noff: true,
+            message: releaseMergeMessage
           }
         },
         stable: {
           options: {
             branch : options.stableBranch,
-            noff: true
+            noff: true,
+            message: stableMergeMessage
           }
         }
       },
