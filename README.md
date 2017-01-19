@@ -201,7 +201,7 @@ git checkout release/main
 git merge --no-ff stable/main
 # package.json and bower.json will conflict due to the version change in both branch.
 git checkout -f origin/release/main -- package.json bower.json # Keep release/main version
-grunt:release:contiue # Increment pre-release
+grunt release:continue # Increment pre-release
 ```
 
 
