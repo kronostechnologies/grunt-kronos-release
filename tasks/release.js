@@ -11,11 +11,10 @@
  */
 
 'use strict';
-var exec = require('sync-exec');
+var child_process = require('child_process');
 
 var execSync = function(cmd) {
-  var result = exec(cmd);
-  return result.stdout;
+  return child_process.execSync(cmd).toString();
 };
 
 
