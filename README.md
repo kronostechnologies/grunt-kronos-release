@@ -45,7 +45,7 @@ bump: {
     commitFiles: ['package.json', 'bower.json', 'CHANGELOG.md'],
     push: false,
     pushTo: 'origin',
-    createTag: false 
+    createTag: false
   }
 }
 ```
@@ -153,7 +153,7 @@ Keep in mind that the code should be feature complete before starting a new rele
 grunt release:continue
 ```
 
- 
+
 #### Release the next version to production
 
 During this step, we set the final version for next release and merge `release/main` into `stable/main`.  The version v1.X.0 will be done on `stable/main` branch.
@@ -183,6 +183,18 @@ grunt hotfix:start:fix-name
 
 # Increment patch version, update changelog, merge into stable/main and tag final version.
 grunt hotfix:finish:fix-name
+```
+
+#### Manually bump patch version on stable branch
+
+If you want to release changes committed directly on stable branche and tag a patch version. Juste use `release:patch`.  This will increment the patch version. Tag it and merge back to release and dev branch.
+
+```
+# Do some commit on stable/main brache
+commit -m "Manual fix"
+
+# Increment the patch version
+grunt release:patch
 ```
 
 #### Bring back hotfix changes if there is no release started.
@@ -244,7 +256,7 @@ grunt.registerTask('release-ia', 'Release for ia', function(releaseCmd, versionT
 Used for `kronos-php-*` and z-push
 
 ```
-# Upstream version is 1.2.3 
+# Upstream version is 1.2.3
 # Current version is 1.2.2
 # the upstream branch contains the upstream code to be fetched
 
@@ -253,7 +265,7 @@ grunt upstream:merge
 
 # < fix conflicts && review changes >
 
-# package new upstream in master 
+# package new upstream in master
 grunt upstream:pack:1.2.3
 
 # > changes version 1.2.2-* to version 1.2.3-0

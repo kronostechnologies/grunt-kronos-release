@@ -1,6 +1,6 @@
-/** 
+/**
  * Manage release flow for Kronos Technologies applications
- * 
+ *
  * grunt release:start:minor
  * grunt release:start:major
  * grunt release:continue
@@ -31,7 +31,7 @@ module.exports = function(grunt) {
     remote: 'origin',
     versionFile: 'package.json'
   };
-  
+
   var configureGitTasks = function(options){
 
     var lastStableTag = execSync('git fetch -q ' + options.remote + ' ' + options.stableBranch + ' && git describe --tags --abbrev=0 ' + options.remote + '/' + options.stableBranch).trim();
@@ -140,7 +140,7 @@ module.exports = function(grunt) {
             tags: true
           }
         }
-        
+
       },
       bump: {
         options: {
@@ -160,7 +160,7 @@ module.exports = function(grunt) {
 
 
   grunt.registerTask('release', 'Prepare a release', function(releaseCmd, versionType) {
-    
+
     var options = this.options(DEFAULT_OPTIONS);
     var version;
     configureGitTasks(options);
@@ -175,13 +175,13 @@ module.exports = function(grunt) {
       }
 
       var bumpType = 'pre' + versionType;
-    
+
       grunt.task.run('gitcheckout:dev');
       grunt.task.run('gitpull:dev');
       grunt.task.run('gitcheckout:release');
       grunt.task.run('gitpull:release');
       grunt.task.run('gitmerge:dev');
-      grunt.task.run('bump:' + bumpType);   
+      grunt.task.run('bump:' + bumpType);
       grunt.task.run('gitpush:release');
     }
     else if(releaseCmd == 'continue'){
@@ -221,6 +221,35 @@ module.exports = function(grunt) {
       grunt.task.run('gitmerge:releaseCiSkip');
       grunt.task.run('gitpush:dev');
     }
+    else if(releaseCmd == 'patch'){
+
+      // Skip useless ci build
+      grunt.config.merge({
+        bump: {
+          options: {
+            commitMessage: 'Release v%VERSION%\n\n[ci skip]'
+          }
+        }
+      });
+
+      // Do a patch version on current stable/main
+
+      grunt.task.run('gitcheckout:stable');
+      grunt.task.run('gitpull:stable');
+      grunt.task.run('bump-only:patch');
+      grunt.task.run('conventionalChangelog');
+      grunt.task.run('bump-commit');
+      grunt.task.run('release:tag');
+      grunt.task.run('gitpush:stable');
+      grunt.task.run('gitcheckout:release');
+      grunt.task.run('gitpull:release');
+      grunt.task.run('gitmerge:stableCiSkip');
+      grunt.task.run('gitpush:release');
+      grunt.task.run('gitcheckout:dev');
+      grunt.task.run('gitpull:dev');
+      grunt.task.run('gitmerge:releaseCiSkip');
+      grunt.task.run('gitpush:dev');
+    }
     else if(releaseCmd == 'finish-merge'){
       grunt.task.run('gitcheckout:release');
       grunt.task.run('gitpull:release');
@@ -232,7 +261,7 @@ module.exports = function(grunt) {
       grunt.task.run('gitpush:dev');
     }
     else if(releaseCmd == 'tag'){
-      
+
       version = null;
       grunt.file.read(options.versionFile).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, suffix) {
         // Version should be increment here also because bump task did not run yet.
@@ -244,7 +273,7 @@ module.exports = function(grunt) {
       }
 
       execSync('git tag -a v' + version  + ' -m "Version ' + version + '"');
-      
+
       grunt.log.ok('Tagged version : ' + version);
     }
     else if(releaseCmd == 'status'){
@@ -254,7 +283,7 @@ module.exports = function(grunt) {
       var grep_pattern = '\'^(?!Merge branch \'"\'"\'' + options.releaseBranch  + '\'"\'"\').+$\'';
       var devMatches = execSync("git rev-list --count --left-right " + devRev + ' --grep ' + grep_pattern + ' --perl-regexp').match(/\d+\t(\d+)/);
       var releaseAhead = (devMatches && devMatches[1] > 0);
-      
+
       // Count number of release commits ahead of stable branch
       var releaseRev = "origin/" + options.stableBranch + "...origin/" + options.releaseBranch;
       var releaseMatches = execSync("git rev-list --count --left-right " + releaseRev).match(/\d+\t(\d+)/);
@@ -279,14 +308,14 @@ module.exports = function(grunt) {
   });
 
   grunt.registerTask('hotfix', 'Prepare a hotfix', function(hotfixCmd, hotfixName) {
-    
+
     var options = this.options(DEFAULT_OPTIONS);
     var hotfixBranch;
     configureGitTasks(options);
 
     if (hotfixCmd == 'start') {
 
-      
+
       if (typeof hotfixName == 'undefined'){
         grunt.fatal('hotfix name is required. (ex: grunt hotfix:start:fix-name)');
       }
@@ -312,15 +341,15 @@ module.exports = function(grunt) {
 
     }
     else if(hotfixCmd == 'finish'){
-      
+
       if (typeof hotfixName == 'undefined'){
         grunt.fatal('hotfix name is required. (ex: grunt hotfix:finish:fix-name)');
       }
 
       hotfixBranch = options.hotfixBranchPrefix + hotfixName;
       grunt.log.writeln('Release hotfix branch : ' + hotfixBranch);
-      
-      var upstreamExists = (execSync('git ls-remote ' + options.remote + ' ' + hotfixBranch).trim() !== "");      
+
+      var upstreamExists = (execSync('git ls-remote ' + options.remote + ' ' + hotfixBranch).trim() !== "");
       var hotfixMergeCiSkipMessage = 'Merge branch \'' + hotfixBranch + '\'\n\n[ci skip]';
 
       grunt.config.merge({
@@ -370,7 +399,7 @@ module.exports = function(grunt) {
       grunt.task.run('gitpush:stable');
 
       //TODO: Delete hotfix branch. grunt-git does not support gitbranch task
-    
+
       grunt.log.writeln('Don\'t forget to merge back ' + options.stableBranch + ' into ' + options.devBranch + '( or in ' + options.releaseBranch + ' if there is a release pending)');
 
     }
@@ -379,16 +408,16 @@ module.exports = function(grunt) {
     }
 
   });
-  
+
   grunt.registerTask('feature', 'Prepare a feature', function(featureCmd, featureName) {
-    
+
     var options = this.options(DEFAULT_OPTIONS);
     var featureBranch, featureDescr;
     configureGitTasks(options);
 
     if (featureCmd == 'start') {
 
-      
+
       if (typeof featureName == 'undefined'){
         grunt.fatal('feature name is required. (ex: grunt feature:start:feature-name)');
       }
@@ -414,7 +443,7 @@ module.exports = function(grunt) {
 
     }
     else if(featureCmd == 'finish'){
-      
+
       if (typeof featureName == 'undefined'){
         grunt.fatal('feature name is required. (ex: grunt feature:finish:feature-name)');
       }
@@ -468,7 +497,7 @@ module.exports = function(grunt) {
       grunt.task.run('gitmerge:feature');
 
       //TODO: Delete feature branch.
-    
+
 
     }
     else {
@@ -476,9 +505,9 @@ module.exports = function(grunt) {
     }
 
   });
-  
+
   grunt.registerTask('upstream', 'Repackage upstream', function(repackCmd, upstreamVersion) {
-      
+
     var options = this.options(DEFAULT_OPTIONS);
     var version;
     configureGitTasks(options);
@@ -506,29 +535,29 @@ module.exports = function(grunt) {
           }
         }
       });
-      
+
     if(repackCmd == 'merge'){
       grunt.task.run('gitcheckout:dev');
       grunt.task.run('gitpull:dev');
       grunt.task.run('gitmerge:upstream');
       grunt.log.ok('please review upstream merge and commit to devBranch');
-    } 
+    }
     else if (repackCmd == 'pack') {
-        
+
       if (typeof upstreamVersion == 'undefined') {
         grunt.fatal('upstream version to repack is required. (ex: grunt upstream:pack:2.1.4)');
       }
-      
+
       version = grunt.file.readJSON(options.versionFile).version;
-      
+
       if (typeof version == 'undefined'){
         grunt.fatal('Cannot find current version in ' + options.versionFile);
       }
-      
+
       var newVersion = upstreamVersion + '-0';
-      
+
       grunt.log.ok('Releasing master changes, changing version "' + version + '" to version "' + newVersion + '"' );
-        
+
       grunt.task.run('gitcheckout:dev');
       execSync('grunt bump:pre --setversion=' + newVersion );
       grunt.task.run('gitpush:dev');
@@ -558,7 +587,7 @@ module.exports = function(grunt) {
       grunt.task.run('gitcheckout:dev');
     }
     else if(repackCmd == 'tag'){
-      
+
       version = null;
       grunt.file.read(options.versionFile).replace(VERSION_REGEXP, function(match, prefix, parsedVersion, suffix) {
         // Version should be increment here also because bump task did not run yet.
@@ -570,7 +599,7 @@ module.exports = function(grunt) {
       }
 
       execSync('git tag -a v' + version  + ' -m "Version ' + version + '"');
-      
+
       grunt.log.ok('Tagged version : ' + version);
     }
     else {
