@@ -18,15 +18,13 @@
   },
   "peerDependencies": {
     "grunt": ">=1.0.1",
-    "grunt-conventional-changelog": ">=5.0.0",
     "grunt-git": ">=1.0.0"
   },
   "devDependencies": {
     "grunt": "^1.0.1",
     "grunt-contrib-jshint": "^1.0.0",
-    "grunt-conventional-changelog": "^5.0.0",
     "grunt-git": "^1.0.0",
-    "grunt-release": "^0.13.1",
+    "grunt-release": "^0.14",
     "load-grunt-tasks": "^3.5.0"
   },
   "keywords": [
