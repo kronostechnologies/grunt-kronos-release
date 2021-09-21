@@ -200,17 +200,6 @@ module.exports = function(grunt) {
 
     }
     else if(releaseCmd === 'finish'){
-
-      // Skip useless ci build
-      grunt.config.merge({
-        bump: {
-          options: {
-            commitMessage: 'Release v%VERSION%\n\n[ci skip]'
-          }
-        }
-      });
-
-
       grunt.task.run('gitcheckout:release');
       grunt.task.run('gitpull:release');
       grunt.task.run('gitcheckout:stable');
@@ -229,15 +218,6 @@ module.exports = function(grunt) {
       grunt.task.run('gitpush:dev');
     }
     else if(releaseCmd === 'patch'){
-
-      // Skip useless ci build
-      grunt.config.merge({
-        bump: {
-          options: {
-            commitMessage: 'Release v%VERSION%\n\n[ci skip]'
-          }
-        }
-      });
 
       // Do a patch version on current stable/main
 
@@ -384,8 +364,7 @@ module.exports = function(grunt) {
         },
         bump: {
           options: {
-            push: false,
-            commitMessage: 'Release v%VERSION%\n\n[ci skip]'
+            push: false
           }
         }
       });
