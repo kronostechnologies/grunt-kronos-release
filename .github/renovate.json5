@@ -1,0 +1,25 @@
+{
+  extends: [
+    "github>kronostechnologies/standards:renovate-base"
+  ],
+
+  reviewers: ["team:crm"],
+  rebaseWhen: "conflicted",
+
+  js: {
+    packageRules: [
+      {
+        matchUpdateTypes: ["major", "minor", "patch"],
+        automerge: false,
+      },
+      {
+        matchUpdateTypes: ["minor"],
+        groupName: "Yarn minors",
+      },
+      {
+        matchUpdateTypes: ["patch"],
+        groupName: "Yarn patches",
+      },
+    ],
+  },
+}
