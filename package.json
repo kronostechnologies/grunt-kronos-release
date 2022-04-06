@@ -21,11 +21,11 @@
     "grunt-git": ">=1.0.0"
   },
   "devDependencies": {
-    "grunt": "^1.0.1",
-    "grunt-contrib-jshint": "^1.0.0",
-    "grunt-git": "^1.0.0",
+    "grunt": "1.4.1",
+    "grunt-contrib-jshint": "1.1.0",
+    "grunt-git": "1.1.1",
     "grunt-release": "kronostechnologies/grunt-release#bump-dependancies",
-    "load-grunt-tasks": "^3.5.0"
+    "load-grunt-tasks": "3.5.2"
   },
   "keywords": [
     "gruntplugin"
