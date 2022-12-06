@@ -1,3 +1,5 @@
+**This repository is no longer used or maintained. We do not recommend the usage of Grunt.**
+
 # grunt-kronos-release
 
 > Manage release flow for Kronos Technologies applications
